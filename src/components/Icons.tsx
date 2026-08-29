@@ -305,3 +305,19 @@ export function LogoMark({ className = "w-9 h-9" }: P) {
     </svg>
   );
 }
+
+export const IconRocket = (p: P) => (
+  <S {...p}>
+    <path d="M12 3c3 2.2 4.5 5.2 4.5 9.2L12 15.5 7.5 12.2C7.5 8.2 9 5.2 12 3z" />
+    <circle cx="12" cy="9.3" r="1.7" />
+    <path d="m7.5 12.2-3 2.4 3.2.9M16.5 12.2l3 2.4-3.2.9" />
+    <path d="M10.5 16.3c0 2 .7 3.5 1.5 4.7.8-1.2 1.5-2.7 1.5-4.7" />
+  </S>
+);
+
+export const IconCopy = (p: P) => (
+  <S {...p}>
+    <rect x="8.5" y="8.5" width="12" height="12" rx="2" />
+    <path d="M16 4.5H6a2 2 0 0 0-2 2v10" />
+  </S>
+);
