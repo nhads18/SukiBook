@@ -255,4 +255,81 @@ npm run preview    # preview the production build
 npm run typecheck  # TypeScript check
 ```
 
-**Done.** Mobile for action, web for insight — now live at your domain. 🎉
+---
+
+## 11 · Ship to Google Play & the Apple App Store
+
+### 11.1 Recommended path: React Native + Expo EAS (one codebase → both stores)
+
+The spec already targets React Native. Use **Expo with EAS** so you never need a Mac for
+Android and can build iOS binaries in the cloud:
+
+```bash
+npm i -g eas-cli
+eas login
+eas build:configure          # adds eas.json with development/preview/production profiles
+eas build -p android --profile production   # → signed .aab
+eas build -p ios --profile production       # → .ipa (cloud build, no Xcode machine needed)
+eas submit -p android        # uploads to Google Play Console
+eas submit -p ios            # uploads to App Store Connect / TestFlight
+```
+
+Add **EAS Update** for OTA patches (bug fixes without review) and a `minAppVersion` check in
+the API so old clients are forced to update.
+
+> **Fast-track alternative:** wrap *this* web dashboard in **Capacitor** (`npx cap add android ios`)
+> to ship a v0 app in ~1 week. It reuses 100% of the web code but risks Apple review
+> guideline **4.2 (Minimum Functionality)** — only viable if you add genuinely native hooks
+> (camera product photos, biometric lock, push notifications, offline SQLite).
+
+### 11.2 What to change in the codebase
+
+| Area | Change |
+| --- | --- |
+| Storage | Web `localStorage` → **MMKV**; tokens/keys in **Keychain (iOS) / Keystore (Android)** via `react-native-keychain` |
+| Offline sync | Keep the SQLite queue; add retry/backoff + a "last sync" indicator; WatermelonDB if the schema grows |
+| Push | Server-side **FCM + APNs** (via Expo Notifications) for low-stock and utang alerts — replaces web toasts |
+| Camera | `expo-camera` / `react-native-vision-camera` for product photos (Phase 2) and barcode scanning (Phase 4) |
+| Biometrics | `expo-local-authentication` for the PIN/fingerprint lock already in the spec |
+| Payments | Sell the ₱199–₱299 subscription on the **web dashboard** (Stripe, or Xendit/GCash for PH). Avoids 15–30% store fees: Google Play Billing is only mandatory for *in-app* purchases; Apple allows external purchase for business SaaS consumed outside the app (guideline **3.1.5(a)**) |
+| SMS | **Keep Semaphore server-side.** Never request `SEND_SMS`/`READ_SMS` permissions — Google Play will reject or heavily restrict them |
+| Deep links | Universal links / app links (`sukibook.ph/invites/...`) and an `sukibook://` scheme |
+| Crash/analytics | Sentry React Native + PostHog; wire the same events as web |
+| i18n | Reuse the existing `en` / `tl` dictionaries (port `src/lib/i18n.ts`) |
+| Assets | Adaptive icon + splash (`expo-splash-screen`); Play needs 512×512 icon + 1024×500 feature graphic; Apple needs per-size AppIcons and 6.7″/6.5″/5.5″ screenshots |
+| Versioning | `version` (semver) + per-build `versionCode` (Play) / `buildNumber` (Apple), auto-incremented by EAS |
+
+### 11.3 Store requirements side-by-side
+
+| Requirement | Google Play | Apple App Store |
+| --- | --- | --- |
+| Account | Play Console, **$25 one-time** (organization account recommended) | Apple Developer Program, **$99/year** |
+| Binary | **App Bundle (.aab)** only; Play App Signing is mandatory for new apps | **.ipa** built with the latest Xcode (current SDK); minimum deployment target iOS 16+ recommended |
+| Target SDK | Latest Android API (35+ in 2026) | Built with current Xcode; App Privacy details required |
+| Privacy | **Data Safety form** + public privacy-policy URL (required — you store phone numbers and utang data) | **Privacy "nutrition labels"** + privacy-policy URL; export-compliance question (HTTPS = exempt) |
+| Content rating | IARC questionnaire in-console | Age rating questionnaire in App Store Connect |
+| Beta testing | Internal → closed → open tracks. *New personal accounts:* 20 testers for 14 days before production — an organization account skips this | TestFlight: 100 internal, 10,000 external testers |
+| Review time | ~1–7 days (longer for new apps) | Typically 24–48 h |
+| Release control | Staged rollout (10% → 100%) | Phased release (7-day automatic ramp) |
+| Rejection traps | SMS/call-log permissions, missing Data Safety, login wall with no demo | 4.2 minimum functionality (web wraps), Sign in with Apple required if you add Google/Facebook login (4.8), IAP rules for digital subscriptions |
+
+### 11.4 Three-week store launch plan
+
+- **Week 1 — Foundation:** EAS wiring, signing keys (Play App Signing + Apple distribution cert),
+  adaptive icons/splash, MMKV/Keychain storage, push notifications, `minAppVersion` endpoint.
+- **Week 2 — Compliance & beta:** internal builds; privacy policy page on your domain; Play
+  Data Safety + Apple privacy labels; TestFlight + Play closed testing with real store owners;
+  Tagalog screenshots and store copy (ASO: "sari-sari", "tindahan", "POS Philippines").
+- **Week 3 — Review & launch:** production submissions; Play staged rollout 10% → 100%;
+  App Store phased release; watch Sentry + sync error rate (< 1% target).
+
+### 11.5 Store costs (on top of §9)
+
+| Item | Cost |
+| --- | --- |
+| Google Play Console | **$25 once** |
+| Apple Developer Program | **$99 / year** |
+| EAS Build & Submit | Free tier (30 builds/mo) → **$29/mo** per seat when you scale |
+| Store fees on subscriptions | 15–30% *only if* you sell in-app — avoid by selling on the web (§11.2) |
+
+**Done.** Mobile for action, web for insight — now live at your domain *and* in both stores. 🎉
