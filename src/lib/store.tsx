@@ -18,6 +18,17 @@ import {
   type Sale,
 } from "./data";
 import { STRINGS, type Lang, type StrKey } from "./i18n";
+import {
+  freshAnchor,
+  isCloudConfigured,
+  onAuthChange,
+  pullStore,
+  pushStore,
+  sendMagicLink,
+  signOutUser,
+  type CloudUser,
+} from "./supabase";
+import LoginGate from "../components/LoginGate";
 
 export interface Settings {
   lang: Lang;
@@ -57,6 +68,10 @@ interface StoreCtx {
   addCustomer: (name: string, phone: string) => void;
   updateSettings: (patch: Partial<Settings>) => void;
   resetDemo: () => void;
+  cloud: { configured: boolean; mode: "demo" | "cloud" | "gate"; email: string | null };
+  login: (email: string) => Promise<void>;
+  logout: () => void;
+  continueDemo: () => void;
 }
 
 const KEY = "sukibook:v3";
@@ -99,6 +114,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const syncTimer = useRef<number | null>(null);
   const toastId = useRef(0);
 
+  /* ---------------- cloud (Supabase) layer ---------------- */
+  const configured = isCloudConfigured();
+  const [cloudUser, setCloudUser] = useState<CloudUser | null>(null);
+  const [bypass, setBypass] = useState(false);
+  const [gateBusy, setGateBusy] = useState(false);
+  const [gateSent, setGateSent] = useState(false);
+  const cloudUserRef = useRef<CloudUser | null>(null);
+  cloudUserRef.current = cloudUser;
+  const dbRef = useRef(db);
+  dbRef.current = db;
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
+  const cloudTimer = useRef<number | null>(null);
+  const bootRef = useRef(false);
+
   useEffect(() => {
     try {
       localStorage.setItem(KEY, JSON.stringify({ db, settings }));
@@ -113,6 +143,47 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     window.setTimeout(() => setToasts((ts) => ts.filter((t) => t.id !== id)), 3600);
   }, []);
 
+  /* debounced offline-first push: every local mutation lands in Supabase */
+  const schedulePush = useCallback(() => {
+    if (!configured) return;
+    if (cloudTimer.current) window.clearTimeout(cloudTimer.current);
+    cloudTimer.current = window.setTimeout(async () => {
+      const u = cloudUserRef.current;
+      if (!u) return;
+      try {
+        await pushStore(u.id, dbRef.current, settingsRef.current as unknown as Record<string, unknown>);
+        setSync({ status: "synced", last: Date.now() });
+      } catch (e) {
+        setSync({ status: "synced", last: Date.now() });
+        notify("warn", "Cloud sync failed", e instanceof Error ? e.message : "Kept on device — retries on next change");
+      }
+    }, 1600);
+  }, [configured, notify]);
+
+  /* auth: hydrate from cloud on login, seed cloud on first login */
+  useEffect(() => {
+    if (!configured) return;
+    const unsub = onAuthChange(async (user) => {
+      setCloudUser(user);
+      if (!user || bootRef.current) return;
+      bootRef.current = true;
+      try {
+        const { bundle, settings: remote } = await pullStore(user.id);
+        if (bundle) {
+          setDb({ anchor: freshAnchor(), ...bundle });
+          if (remote) setSettings((s) => ({ ...s, ...(remote as unknown as Partial<Settings>) }));
+          notify("ok", "Synced from cloud", "Your store data is loaded");
+        } else {
+          await pushStore(user.id, dbRef.current, settingsRef.current as unknown as Record<string, unknown>);
+          notify("ok", "Store connected", "Starter catalog uploaded to your cloud store");
+        }
+      } catch (e) {
+        notify("warn", "Cloud sync failed", e instanceof Error ? e.message : "Check your connection");
+      }
+    });
+    return unsub;
+  }, [configured, notify]);
+
   const markSync = useCallback(() => {
     setSync({ status: "syncing", last: Date.now() });
     if (syncTimer.current) window.clearTimeout(syncTimer.current);
@@ -120,7 +191,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       () => setSync({ status: "synced", last: Date.now() }),
       1100,
     );
-  }, []);
+    schedulePush();
+  }, [schedulePush]);
 
   const t = useCallback(
     (k: StrKey) => STRINGS[settings.lang][k] ?? STRINGS.en[k] ?? k,
@@ -363,14 +435,42 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [markSync, notify],
   );
 
-  const updateSettings = useCallback((patch: Partial<Settings>) => {
-    setSettings((s) => ({ ...s, ...patch }));
-  }, []);
+  const updateSettings = useCallback(
+    (patch: Partial<Settings>) => {
+      setSettings((s) => ({ ...s, ...patch }));
+      schedulePush();
+    },
+    [schedulePush],
+  );
 
   const resetDemo = useCallback(() => {
     localStorage.removeItem(KEY);
     window.location.reload();
   }, []);
+
+  /* ---------------- cloud auth actions ---------------- */
+  const login = useCallback(async (email: string) => {
+    setGateBusy(true);
+    const res = await sendMagicLink(email);
+    setGateBusy(false);
+    if (!res.ok) throw new Error(res.error ?? "Could not send the magic link");
+    setGateSent(true);
+  }, []);
+
+  const logout = useCallback(() => {
+    void signOutUser();
+    setCloudUser(null);
+    setGateSent(false);
+    bootRef.current = false;
+  }, []);
+
+  const continueDemo = useCallback(() => setBypass(true), []);
+
+  const mode: "demo" | "cloud" | "gate" = !configured || bypass ? "demo" : cloudUser ? "cloud" : "gate";
+
+  if (mode === "gate") {
+    return <LoginGate busy={gateBusy} sent={gateSent} onSend={login} onDemo={continueDemo} />;
+  }
 
   return (
     <Ctx.Provider
@@ -391,6 +491,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         addCustomer,
         updateSettings,
         resetDemo,
+        cloud: { configured, mode, email: cloudUser?.email ?? null },
+        login,
+        logout,
+        continueDemo,
       }}
     >
       {children}

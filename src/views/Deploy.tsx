@@ -46,65 +46,61 @@ const PHASES: Phase[] = [
   {
     id: "db",
     n: "02",
-    title: "Provision PostgreSQL",
+    title: "Create the Supabase backend",
     time: "~15 min",
-    blurb: "One database serves mobile and web — proper relations as the store count grows.",
+    blurb: "Auth + PostgreSQL + storage in one project — no custom backend to operate.",
     items: [
-      "Create Postgres 14+ (Railway plugin, Render, or Neon)",
-      "Run schema: products, customers, sales, sale_items, stock_movements, utang_entries, users, activity_log",
-      "Add indexes on sales(ts), stock_movements(product_id, ts), utang_entries(customer_id, ts)",
-      "Save DATABASE_URL for the API",
+      "New project, region Singapore (closest to PH users)",
+      "Run supabase/schema.sql in the SQL Editor — 5 tables + RLS + photo bucket",
+      "Enable Email provider with Magic Link on",
+      "Copy Project URL + anon public key (RLS makes the anon key safe)",
     ],
     code: {
-      label: "psql",
-      text: "create table products (id text primary key, name text,\n  cat text, price numeric(10,2), cost numeric(10,2),\n  stock int, updated_at timestamptz default now());\ncreate table sales (id text primary key, payment text,\n  total numeric(10,2), ts timestamptz default now());\ncreate index on sales (ts);",
+      label: "sql editor · supabase/schema.sql",
+      text: "create table public.sb_sales (\n  id text primary key,\n  store_id uuid not null references auth.users (id),\n  ts timestamptz not null,\n  payment text, total numeric(10,2), items jsonb\n);\ncreate policy \"owner full access\" on public.sb_sales\n  for all using (auth.uid() = store_id)\n  with check (auth.uid() = store_id);",
     },
   },
   {
-    id: "api",
+    id: "connect",
     n: "03",
-    title: "Ship the API (Railway)",
-    time: "~20 min",
-    blurb: "Node.js + Express on Railway (or Render) — one backend for both platforms.",
+    title: "Connect the app",
+    time: "~10 min",
+    blurb: "Two env vars flip the same build from demo mode to live cloud mode.",
     items: [
-      "Deploy sukibook-api from GitHub — start command auto-detected",
-      "Set DATABASE_URL, SUPABASE_SERVICE_ROLE_KEY, CORS_ORIGIN",
-      "Add SEMAPHORE_API_KEY + Cloudinary keys for SMS & photos",
-      "Healthcheck green on GET /health",
+      "Add keys to .env.local — login gate appears, demo mode ends",
+      "First login seeds your cloud store with the starter catalog",
+      "Every sale / stock / utang change auto-pushes (~1.5 s debounce)",
+      "Kill the network mid-sale — it still records; syncs on next action",
     ],
     code: {
-      label: ".env (server only)",
-      text: "DATABASE_URL=postgres://user:pass@host:5432/sukibook\nSUPABASE_SERVICE_ROLE_KEY=***\nSEMAPHORE_API_KEY=***\nGOOGLE_SHEETS_ID=***\nSYNC_SHEETS_EVERY_MS=3600000\nSESSION_TIMEOUT_MIN=30",
+      label: ".env.local / .env.production",
+      text: "VITE_SUPABASE_URL=https://<project-ref>.supabase.co\nVITE_SUPABASE_ANON_KEY=<anon-public-key>\n# no VITE_* keys? app runs as a public demo instead",
     },
   },
   {
     id: "web",
     n: "04",
-    title: "Deploy web to Vercel",
+    title: "Deploy to Vercel",
     time: "~10 min",
-    blurb: "Static Vite build, instant rollbacks, automatic SSL on your domain.",
+    blurb: "Static Vite build, ~1 min deploys per git push, instant rollbacks, free SSL.",
     items: [
       "Import repo → framework preset: Vite → output dist",
-      "Add VITE_API_URL, VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY",
-      "Connect domain (A/CNAME) — SSL issues automatically",
-      "PWA enabled: installable, cached reports work offline",
+      "Add VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY in project settings",
+      "Set Supabase Site URL to your Vercel domain (magic-link redirects)",
+      "Connect your .ph domain — SSL issues automatically",
     ],
-    code: {
-      label: ".env.production",
-      text: "VITE_API_URL=https://api.sukibook.ph\nVITE_SUPABASE_URL=https://<project>.supabase.co\nVITE_SUPABASE_ANON_KEY=<anon-key>\nVITE_LOW_STOCK_THRESHOLD=5",
-    },
   },
   {
-    id: "integrations",
+    id: "verify",
     n: "05",
-    title: "Wire integrations",
-    time: "~1 hr",
-    blurb: "Sheets for the owners' eyes, Semaphore for utang reminders, Drive for backups.",
+    title: "Verify the loop",
+    time: "~20 min",
+    blurb: "One end-to-end pass is the whole acceptance test.",
     items: [
-      "Google service account created; sheet shared as Editor",
-      "Hourly Sheets sync job verified (products / sales / utang tabs)",
-      "Semaphore credits loaded; test SMS received on a real phone",
-      "Nightly pg_dump → encrypted upload to Drive folder (30-day retention)",
+      "Sign up with a real email → magic link lands → store hydrates",
+      "Record 5 sales, refresh the page — data persists",
+      "Open a second browser, same login — same numbers",
+      "Check Supabase Table Editor: rows exist under your store_id only",
     ],
   },
   {
@@ -112,24 +108,21 @@ const PHASES: Phase[] = [
     n: "06",
     title: "Harden & go live",
     time: "~1 day",
-    blurb: "Security, pilots, and monitoring before the first 100 stores.",
+    blurb: "Pilot with real tindahans before scaling past 100 stores.",
     items: [
-      "Rate limiting + input validation on every write endpoint",
-      "Row-level security per role: owner / helper / accountant",
-      "Session timeout 30 min, activity log on, remote logout tested",
-      "Pilot with 3 stores; test ₱3–5k Androids on throttled 3G",
-      "Uptime ping on /health, Sentry wired, backup restore drill done",
+      "RLS spot-check: second account cannot read your tables",
+      "Nightly pg_dump export (Free) or PITR (Pro) — restore drill done",
+      "Pilot 3 stores; test on throttled 3G + low-end Android browsers",
+      "Vercel analytics + Supabase dashboard watched for a week",
     ],
   },
 ];
 
 const COSTS = [
   { item: "Vercel (web hosting)", min: 0, max: 500 },
-  { item: "Railway / Render (API)", min: 500, max: 1000 },
-  { item: "PostgreSQL", min: 500, max: 1000 },
-  { item: "Google Sheets API", min: 0, max: 0 },
-  { item: "Google Drive backups", min: 1000, max: 1000 },
-  { item: "Semaphore SMS gateway", min: 1000, max: 2000 },
+  { item: "Supabase Free (auth + Postgres + storage)", min: 0, max: 0 },
+  { item: "Supabase Pro (past ~500 MB / PITR)", min: 0, max: 1400 },
+  { item: "Semaphore SMS (Phase 2)", min: 0, max: 2000 },
   { item: "Domain & SSL", min: 100, max: 100 },
 ];
 
@@ -173,11 +166,11 @@ function ArchDiagram() {
       </defs>
       {/* nodes */}
       {[
-        { x: 20, y: 30, w: 150, h: 62, t1: "Android app", t2: "React Native · SQLite", c: "#103524" },
-        { x: 20, y: 158, w: 150, h: 62, t1: "Web dashboard", t2: "React + Vite · PWA", c: "#103524" },
-        { x: 300, y: 94, w: 170, h: 62, t1: "Express API", t2: "Railway / Render", c: "#f6a81c" },
+        { x: 20, y: 30, w: 150, h: 62, t1: "Android app", t2: "Phase 2 · same sync core", c: "#103524" },
+        { x: 20, y: 158, w: 150, h: 62, t1: "Web dashboard", t2: "Vercel · React + Vite", c: "#103524" },
+        { x: 300, y: 94, w: 170, h: 62, t1: "Supabase", t2: "auth · RLS · PostgREST", c: "#f6a81c" },
         { x: 590, y: 30, w: 150, h: 62, t1: "PostgreSQL", t2: "source of truth", c: "#103524" },
-        { x: 590, y: 158, w: 150, h: 62, t1: "Google Sheets", t2: "hourly sync", c: "#103524" },
+        { x: 590, y: 158, w: 150, h: 62, t1: "Storage bucket", t2: "product photos", c: "#103524" },
       ].map((n, i) => (
         <g key={i}>
           <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="10" fill={n.c} />
@@ -191,7 +184,7 @@ function ArchDiagram() {
       ))}
       {/* side services */}
       {[
-        { x: 300, y: 200, w: 170, h: 34, t: "Semaphore SMS · Cloudinary · Drive" },
+        { x: 300, y: 200, w: 170, h: 34, t: "Phase 2: Semaphore SMS · Sheets mirror" },
       ].map((n, i) => (
         <g key={i}>
           <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="17" fill="none" stroke="#103524" strokeWidth="1.5" strokeDasharray="4 4" />
@@ -206,8 +199,8 @@ function ArchDiagram() {
       <path d="M470,110 C530,95 540,61 590,61" fill="none" stroke="#103524" strokeWidth="2" markerEnd="url(#arr)" className="flow-dash" />
       <path d="M470,140 C530,155 540,189 590,189" fill="none" stroke="#c9a24b" strokeWidth="2" strokeDasharray="5 5" markerEnd="url(#arr)" className="flow-dash" />
       <path d="M385,156 L385,200" fill="none" stroke="#c9a24b" strokeWidth="1.5" strokeDasharray="4 4" />
-      <text x="505" y="84" fontSize="10" fontFamily="Spline Sans Mono, monospace" fill="#4c5c51">real-time</text>
-      <text x="505" y="176" fontSize="10" fontFamily="Spline Sans Mono, monospace" fill="#c9a24b">every hour</text>
+      <text x="498" y="84" fontSize="10" fontFamily="Spline Sans Mono, monospace" fill="#4c5c51">RLS-secured</text>
+      <text x="498" y="176" fontSize="10" fontFamily="Spline Sans Mono, monospace" fill="#c9a24b">debounced 1.5 s</text>
     </svg>
   );
 }
@@ -279,7 +272,7 @@ export default function DeployView() {
       {/* architecture */}
       <Reveal delay={80}>
         <div className="rounded-xl border border-line bg-card p-5 shadow-sm">
-          <SectionHead eyebrow="Architecture" title="One backend, two fronts" desc="Mobile for action, web for insight — both read the same PostgreSQL, with Sheets as the owners' familiar mirror." />
+          <SectionHead eyebrow="Architecture" title="One backend, zero ops" desc="Vercel serves the dashboard; Supabase owns auth, RLS and PostgreSQL. Every tap debounces into the cloud — offline-first by design." />
           <ArchDiagram />
         </div>
       </Reveal>
@@ -380,8 +373,8 @@ export default function DeployView() {
               <h3 className="font-display text-base font-extrabold">Rollback plan</h3>
               <ul className="mt-2 space-y-2 text-xs text-ink-soft">
                 <li className="flex gap-2"><span className="font-mono font-bold text-cherry">30s</span> Vercel instant rollback to the previous deployment</li>
-                <li className="flex gap-2"><span className="font-mono font-bold text-cherry">2m</span> Redeploy the previous tagged API image on Railway</li>
-                <li className="flex gap-2"><span className="font-mono font-bold text-cherry">15m</span> pg_restore from the latest nightly encrypted backup</li>
+                <li className="flex gap-2"><span className="font-mono font-bold text-cherry">2m</span> Supabase dashboard → pause / restore a database backup</li>
+                <li className="flex gap-2"><span className="font-mono font-bold text-cherry">15m</span> pg_restore from the nightly pg_dump export (Pro: PITR)</li>
               </ul>
             </div>
             <div className="rounded-xl border border-line bg-card p-5 shadow-sm">

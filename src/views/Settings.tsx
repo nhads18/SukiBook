@@ -24,7 +24,7 @@ const TEAM = [
 ];
 
 export default function SettingsView() {
-  const { settings, updateSettings, notify, resetDemo } = useStore();
+  const { settings, updateSettings, notify, resetDemo, cloud, logout } = useStore();
   const [name, setName] = useState(settings.storeName);
   const [owner, setOwner] = useState(settings.owner);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -57,6 +57,64 @@ export default function SettingsView() {
       </Reveal>
 
       <div className="space-y-5">
+        {/* cloud connection */}
+        <Reveal delay={30}>
+          <div className="rounded-xl border border-line bg-card p-5 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="font-display text-lg font-bold">Cloud connection</h2>
+                <p className="mt-0.5 text-xs text-ink-soft">Vercel + Supabase · offline-first, last-write-wins</p>
+              </div>
+              {cloud.mode === "cloud" ? (
+                <span className="flex items-center gap-1.5 rounded-full bg-leaf-soft px-2.5 py-1 text-[10px] font-extrabold uppercase text-leaf">
+                  <IconCheck className="h-3 w-3" /> Live
+                </span>
+              ) : (
+                <span className="rounded-full bg-mango-soft px-2.5 py-1 text-[10px] font-extrabold uppercase text-mango-deep">Demo data</span>
+              )}
+            </div>
+            {cloud.mode === "cloud" ? (
+              <div className="mt-4 flex items-center justify-between gap-3 rounded-lg bg-paper/70 px-3.5 py-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold">{cloud.email}</p>
+                  <p className="flex items-center gap-1.5 font-mono text-[10px] text-ink-soft">
+                    <IconSync className="h-3 w-3" /> changes auto-push ~1.5 s after each tap
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    logout();
+                    notify("info", "Signed out", "You'll be asked to sign in again");
+                  }}
+                  className="btn-press shrink-0 rounded-md border border-line bg-card px-3 py-1.5 text-[11px] font-bold text-ink-soft transition hover:border-cherry hover:text-cherry"
+                >
+                  Sign out
+                </button>
+              </div>
+            ) : cloud.configured ? (
+              <div className="mt-4 flex items-center justify-between gap-3 rounded-lg bg-mango-soft/60 px-3.5 py-3">
+                <p className="text-xs font-semibold text-mango-deep">
+                  You're browsing demo data — sign in to sync this store to the cloud.
+                </p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="btn-press shrink-0 rounded-md bg-pine px-3 py-1.5 text-[11px] font-extrabold text-mango transition hover:bg-pine-deep"
+                >
+                  Sign in
+                </button>
+              </div>
+            ) : (
+              <p className="mt-4 rounded-lg bg-paper/70 px-3.5 py-3 text-xs leading-relaxed text-ink-soft">
+                Supabase isn't configured yet. Add{" "}
+                <span className="font-mono font-bold text-pine">VITE_SUPABASE_URL</span> and{" "}
+                <span className="font-mono font-bold text-pine">VITE_SUPABASE_ANON_KEY</span> in Vercel,
+                run <span className="font-mono font-bold text-pine">supabase/schema.sql</span>, and this
+                build goes live — full steps in the <span className="font-bold">Deploy</span> tab.
+              </p>
+            )}
+          </div>
+        </Reveal>
+
         {/* language */}
         <Reveal delay={60}>
           <div className="rounded-xl border border-line bg-card p-5 shadow-sm">
