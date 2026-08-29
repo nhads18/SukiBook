@@ -227,6 +227,40 @@ export const IconBattery = (p: P) => (
   </S>
 );
 
+export const IconStorefront = (p: P) => (
+  <S {...p}>
+    <path d="M4.5 9.2 5.7 4.5h12.6l1.2 4.7" />
+    <path d="M3.8 9.2h16.4" />
+    <path d="M4.6 9.2a2.35 2.35 0 0 0 4.7.2 2.35 2.35 0 0 0 4.7 0 2.35 2.35 0 0 0 4.7-.2" />
+    <path d="M5.8 12.5v7.5h12.4v-7.5" />
+    <path d="M10 20v-4.6h4V20" />
+  </S>
+);
+
+/* ---- filled store badges (Google Play facets + Apple mark) ---- */
+
+export function BadgePlay({ className = "w-8 h-8" }: P) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <path d="M5 3.6 13.9 12 5 20.4c-.4-.2-.7-.6-.7-1.2V4.8c0-.6.3-1 .7-1.2z" fill="#32BBFF" />
+      <path d="M5 3.6c.3-.2.7-.2 1.1 0l10.4 6-2.6 2.4z" fill="#00E676" />
+      <path d="M5 20.4c.3.2.7.2 1.1 0l10.4-6-2.6-2.4z" fill="#FF3A44" />
+      <path d="m16.5 9.6 2.6 1.5c1.2.7 1.2 1.9 0 2.6l-2.6 1.5L13.9 12z" fill="#FFBC00" />
+    </svg>
+  );
+}
+
+export function BadgeApple({ className = "w-8 h-8" }: P) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <path
+        d="M16.6 12.9c0-2 1.6-3 1.7-3.1-1-1.4-2.4-1.6-2.9-1.6-1.2-.1-2.4.7-3 .7-.6 0-1.6-.7-2.6-.7-1.3 0-2.6.8-3.3 2-1.4 2.5-.4 6.1 1 8.1.7 1 1.5 2.1 2.6 2 1-.1 1.4-.7 2.7-.7s1.6.7 2.7.7c1.1 0 1.8-1 2.5-2 .8-1.2 1.1-2.3 1.1-2.4 0 0-2.4-.9-2.5-3zM14.6 6.6c.6-.7 1-1.7.9-2.7-.9 0-1.9.6-2.5 1.3-.5.6-1 1.6-.9 2.6 1 .1 2-.5 2.5-1.2z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
 export const IconSheets = (p: P) => (
   <S {...p}>
     <rect x="4.5" y="3.5" width="15" height="17" rx="1.5" />
