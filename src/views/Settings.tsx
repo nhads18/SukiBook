@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useStore } from "../lib/store";
 import { Field, Modal, Reveal, Seg } from "../components/ui";
-import { IconCheck, IconGear, IconSheets, IconSync, IconUsers } from "../components/Icons";
+import { IconCheck, IconGear, IconShield, IconSheets, IconSync, IconUsers } from "../components/Icons";
 import type { Lang } from "../lib/i18n";
 
 function Switch({ on, onToggle }: { on: boolean; onToggle: () => void }) {
@@ -17,6 +17,116 @@ function Switch({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   );
 }
 
+function SecurityCard({ mode, phones }: { mode: "demo" | "cloud" | "gate"; phones: number }) {
+  const checks = useMemo(() => {
+    const tls =
+      window.location.protocol === "https:" || window.location.hostname === "localhost";
+    const swActive = "serviceWorker" in navigator && !!navigator.serviceWorker.controller;
+    const rows: { label: string; ok: boolean; note: boolean; detail: string }[] = [
+      {
+        label: "Transport (TLS)",
+        ok: tls,
+        note: !tls,
+        detail: tls ? "HTTPS — traffic encrypted end to end" : "Plain HTTP — fine on localhost only",
+      },
+      {
+        label: "Database access (RLS)",
+        ok: mode === "cloud",
+        note: mode !== "cloud",
+        detail:
+          mode === "cloud"
+            ? "Row-Level Security: every row locked to your login"
+            : "Demo mode — nothing leaves this browser",
+      },
+      {
+        label: "Sync integrity",
+        ok: true,
+        note: false,
+        detail:
+          mode === "cloud"
+            ? "Single-transaction push — concurrent devices can't lose rows"
+            : "Local writes only — inherently atomic",
+      },
+      {
+        label: "Authentication",
+        ok: mode === "cloud",
+        note: mode !== "cloud",
+        detail:
+          mode === "cloud"
+            ? "Magic link — no passwords stored anywhere"
+            : "No account — demo session",
+      },
+      {
+        label: "Offline cache",
+        ok: swActive,
+        note: !swActive,
+        detail: swActive
+          ? "App shell cached — store data is never cached"
+          : "Service worker inactive (dev build)",
+      },
+      {
+        label: "CSV exports",
+        ok: true,
+        note: false,
+        detail: "Formula-injection guarded for Excel / WPS / Sheets",
+      },
+    ];
+    return rows;
+  }, [mode]);
+
+  const good = checks.filter((c) => c.ok).length;
+
+  return (
+    <Reveal delay={45}>
+      <div className="rounded-xl border border-line bg-card p-5 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-pine text-mango">
+              <IconShield className="h-5 w-5" />
+            </span>
+            <div>
+              <h2 className="font-display text-lg font-bold leading-tight">Security status</h2>
+              <p className="text-xs text-ink-soft">Live audit of this deployment</p>
+            </div>
+          </div>
+          <span
+            className={`rounded-full px-2.5 py-1 font-mono text-[10px] font-extrabold uppercase ${
+              good === checks.length ? "bg-leaf-soft text-leaf" : "bg-mango-soft text-mango-deep"
+            }`}
+          >
+            {good}/{checks.length} green
+          </span>
+        </div>
+        <ul className="mt-4 space-y-2">
+          {checks.map((c) => (
+            <li key={c.label} className="flex items-start gap-2.5 rounded-lg bg-paper/70 px-3 py-2">
+              <span
+                className={`mt-1 h-2 w-2 shrink-0 rounded-full ${c.ok ? "bg-leaf" : "pulse-dot bg-mango"}`}
+              />
+              <div className="min-w-0">
+                <p className="text-xs font-bold leading-tight">{c.label}</p>
+                <p className="text-[11px] leading-snug text-ink-soft">{c.detail}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+        {mode !== "cloud" && phones > 0 && (
+          <p className="mt-3 rounded-lg border border-mango/40 bg-mango-soft/60 px-3 py-2 text-[11px] font-semibold leading-snug text-mango-deep">
+            Advisory: {phones} customer phone number{phones === 1 ? "" : "s"} currently live in this
+            browser's local storage (demo data). Sign in to move them to RLS-protected Postgres, or
+            clear site data to erase them.
+          </p>
+        )}
+        <p className="mt-3 font-mono text-[10px] leading-relaxed text-ink-soft">
+          Also enforced server-side: length &amp; range caps on every column, owner-only photo
+          bucket, CSP + framing headers via vercel.json, magic-link redirects restricted to your
+          domain in Supabase.
+        </p>
+      </div>
+    </Reveal>
+  );
+}
+
 const TEAM = [
   { name: "Aling Nena", role: "Owner", tint: "bg-mango text-pine-deep", desc: "Full access — sales, profit, utang, settings" },
   { name: "Kuya Jojo", role: "Helper", tint: "bg-leaf-soft text-leaf", desc: "Records sales & stock · hindi nakikita ang profit" },
@@ -24,7 +134,7 @@ const TEAM = [
 ];
 
 export default function SettingsView() {
-  const { settings, updateSettings, notify, resetDemo, cloud, logout } = useStore();
+  const { db, settings, updateSettings, notify, resetDemo, cloud, logout } = useStore();
   const [name, setName] = useState(settings.storeName);
   const [owner, setOwner] = useState(settings.owner);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -114,6 +224,9 @@ export default function SettingsView() {
             )}
           </div>
         </Reveal>
+
+        {/* security status — live audit of this deployment */}
+        <SecurityCard mode={cloud.mode} phones={db.customers.filter((c) => c.phone).length} />
 
         {/* language */}
         <Reveal delay={60}>

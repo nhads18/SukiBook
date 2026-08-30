@@ -395,9 +395,14 @@ export const timeAgo = (ts: number) => {
 };
 
 export function downloadCSV(filename: string, rows: (string | number)[][]) {
-  const csv = rows
-    .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
-    .join("\n");
+  // CSV formula-injection guard: Excel/WPS/Sheets execute cells that begin
+  // with = + - @ (or tab/CR) — a product named "=cmd|'/c calc'!A0" must not
+  // become a payload when the owner opens the export. Prefix with '.
+  const cell = (c: string | number) => {
+    const s = String(c).replace(/"/g, '""');
+    return /^[=+\-@\t\r]/.test(s) ? `"'${s}"` : `"${s}"`;
+  };
+  const csv = rows.map((r) => r.map(cell).join(",")).join("\n");
   const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

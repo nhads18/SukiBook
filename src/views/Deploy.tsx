@@ -112,6 +112,7 @@ const PHASES: Phase[] = [
     blurb: "Pilot with real tindahans before scaling past 100 stores.",
     items: [
       "RLS spot-check: second account cannot read your tables",
+      "Response headers: CSP, X-Frame-Options DENY, HSTS present in DevTools",
       "Nightly pg_dump export (Free) or PITR (Pro) — restore drill done",
       "Pilot 3 stores; test on throttled 3G + low-end Android browsers",
       "Vercel analytics + Supabase dashboard watched for a week",
