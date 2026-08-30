@@ -132,6 +132,10 @@ instant rollback from the Vercel dashboard if anything goes wrong.
 - **Security:** Supabase Auth (magic link) + RLS on every table + per-store
   `store_id`. Helper/accountant roles (spec §10) land in Phase 2 as extra RLS
   policies on a `store_members` table.
+- **PWA:** the dashboard is installable (manifest + SVG app icon) and a small
+  service worker caches the app shell, so previously-loaded reports stay
+  readable with no signal — the web half of the spec's offline requirement
+  (§9) without any extra infra.
 
 ---
 

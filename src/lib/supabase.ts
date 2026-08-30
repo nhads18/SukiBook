@@ -1,4 +1,4 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { startOfDay, type DB } from "./data";
 
 const URL = import.meta.env.VITE_SUPABASE_URL ?? "";
@@ -8,11 +8,23 @@ const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY ?? "";
 export const isCloudConfigured = (): boolean =>
   URL.startsWith("http") && ANON.length > 20;
 
-export const supa: SupabaseClient | null = isCloudConfigured()
-  ? createClient(URL, ANON, {
-      auth: { persistSession: true, autoRefreshToken: true },
-    })
-  : null;
+let _client: SupabaseClient | null = null;
+let _clientPromise: Promise<SupabaseClient | null> | null = null;
+
+/** The SDK is dynamic-imported, so demo builds never download it. */
+function getClient(): Promise<SupabaseClient | null> {
+  if (!isCloudConfigured()) return Promise.resolve(null);
+  if (_client) return Promise.resolve(_client);
+  if (!_clientPromise) {
+    _clientPromise = import("@supabase/supabase-js").then(({ createClient }) => {
+      _client = createClient(URL, ANON, {
+        auth: { persistSession: true, autoRefreshToken: true },
+      });
+      return _client;
+    });
+  }
+  return _clientPromise;
+}
 
 /* ------------------------------------------------------------------ */
 /* Auth                                                                */
@@ -21,6 +33,7 @@ export const supa: SupabaseClient | null = isCloudConfigured()
 export type CloudUser = { id: string; email: string };
 
 export async function sendMagicLink(email: string): Promise<{ ok: boolean; error?: string }> {
+  const supa = await getClient();
   if (!supa) return { ok: false, error: "Supabase is not configured" };
   const { error } = await supa.auth.signInWithOtp({
     email,
@@ -30,17 +43,27 @@ export async function sendMagicLink(email: string): Promise<{ ok: boolean; error
 }
 
 export async function signOutUser(): Promise<void> {
+  const supa = await getClient();
   if (supa) await supa.auth.signOut();
 }
 
 /** Subscribe to auth changes. Returns an unsubscribe function. */
 export function onAuthChange(cb: (user: CloudUser | null) => void): () => void {
-  if (!supa) return () => undefined;
-  const { data } = supa.auth.onAuthStateChange((_event, session) => {
-    const u = session?.user;
-    cb(u ? { id: u.id, email: u.email ?? "" } : null);
+  if (!isCloudConfigured()) return () => undefined;
+  let unsub: (() => void) | null = null;
+  let cancelled = false;
+  void getClient().then((supa) => {
+    if (!supa || cancelled) return;
+    const { data } = supa.auth.onAuthStateChange((_event, session) => {
+      const u = session?.user;
+      cb(u ? { id: u.id, email: u.email ?? "" } : null);
+    });
+    unsub = () => data.subscription.unsubscribe();
   });
-  return () => data.subscription.unsubscribe();
+  return () => {
+    cancelled = true;
+    unsub?.();
+  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -148,6 +171,7 @@ export function toRows(storeId: string, db: DB): {
 
 /** Returns null when the remote store is empty (first login). */
 export async function pullStore(storeId: string): Promise<{ bundle: StoreBundle | null; settings: Record<string, unknown> | null }> {
+  const supa = await getClient();
   if (!supa) throw new Error("Supabase is not configured");
   const [p, c, s, m, st] = await Promise.all([
     supa.from("sb_products").select("*").eq("store_id", storeId),
@@ -212,6 +236,7 @@ export async function pushStore(
   db: DB,
   settings: Record<string, unknown>,
 ): Promise<void> {
+  const supa = await getClient();
   if (!supa) throw new Error("Supabase is not configured");
   const rows = toRows(storeId, db);
 

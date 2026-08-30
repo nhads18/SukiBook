@@ -31,16 +31,16 @@ const PHASES: Phase[] = [
     n: "01",
     title: "Develop locally",
     time: "~30 min",
-    blurb: "Clone, install, and boot both halves of the system on your machine.",
+    blurb: "One repo, one frontend — Supabase is the entire backend.",
     items: [
       "Node.js 18+ and Git installed",
-      "npm install → npm run dev (dashboard on :5173)",
-      "sukibook-api boots on :8080 with a local Postgres",
-      "npm run build passes, typecheck clean",
+      "npm install → npm run dev (dashboard on :5173, demo mode)",
+      "No Supabase keys? Runs as a seeded public demo — ship that first",
+      "npm run build + typecheck pass clean",
     ],
     code: {
       label: "terminal",
-      text: "git clone https://github.com/you/sukibook.git\ncd sukitab && npm install\nnpm run dev        # web dashboard\nnpm run build      # production → dist/",
+      text: "git clone https://github.com/you/sukibook.git\ncd sukitab && npm install\nnpm run dev        # demo mode, no keys needed\ncp .env.example .env.local   # add keys → live mode",
     },
   },
   {
@@ -101,6 +101,7 @@ const PHASES: Phase[] = [
       "Record 5 sales, refresh the page — data persists",
       "Open a second browser, same login — same numbers",
       "Check Supabase Table Editor: rows exist under your store_id only",
+      "Install prompt appears → add to home screen, open offline, reports still load",
     ],
   },
   {
