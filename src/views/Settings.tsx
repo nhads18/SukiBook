@@ -289,7 +289,9 @@ export default function SettingsView() {
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h2 className="font-display text-lg font-bold">Team &amp; roles</h2>
-              <p className="text-xs text-ink-soft">Role-based access — helpers can't see profit</p>
+              <p className="text-xs text-ink-soft">
+                Role-based access per spec §10 — <span className="font-bold text-mango-deep">Deploy tab is owner-only</span>, helpers can't see profit
+              </p>
             </div>
             <button
               onClick={() => notify("info", "Invite link copied", "Send it to your helper's phone")}
@@ -298,20 +300,68 @@ export default function SettingsView() {
               <IconUsers className="h-3.5 w-3.5" /> Invite
             </button>
           </div>
+
+          {/* active role switcher — this session */}
+          <div className="mb-4 grid gap-2 sm:grid-cols-3">
+            {TEAM.map((m) => {
+              const key = m.role.toLowerCase() as typeof settings.role;
+              const active = settings.role === key;
+              return (
+                <button
+                  key={m.name}
+                  onClick={() => {
+                    if (!active) {
+                      updateSettings({ role: key });
+                      notify(
+                        key === "owner" ? "ok" : "info",
+                        `Signed in as ${m.role}`,
+                        key === "owner" ? "Full access — Deploy tab unlocked" : "Access narrowed to this role",
+                      );
+                    }
+                  }}
+                  className={`btn-press relative rounded-xl border p-3.5 text-left transition ${
+                    active ? "border-pine bg-pine text-card shadow-md" : "border-line bg-paper/60 hover:border-pine/50 hover:bg-pine-soft/50"
+                  }`}
+                >
+                  {active && <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-mango" />}
+                  <p className={`font-display text-sm font-extrabold ${active ? "text-mango" : ""}`}>{m.role}</p>
+                  <p className={`mt-1 text-[11px] leading-snug ${active ? "text-card/70" : "text-ink-soft"}`}>{m.desc}</p>
+                  {key === "owner" && (
+                    <p className={`mt-2 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider ${active ? "bg-mango text-pine-deep" : "bg-mango-soft text-mango-deep"}`}>
+                      <IconShield className="h-3 w-3" /> Deploy access
+                    </p>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
           <ul className="space-y-2.5">
-            {TEAM.map((m) => (
-              <li key={m.name} className="flex items-center gap-3 rounded-lg border border-line bg-paper/60 px-3.5 py-2.5 transition hover:bg-pine-soft/50">
-                <span className={`flex h-9 w-9 items-center justify-center rounded-full font-display text-xs font-extrabold ${m.tint}`}>
-                  {m.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold">{m.name}</p>
-                  <p className="truncate text-[11px] text-ink-soft">{m.desc}</p>
-                </div>
-                <span className={`rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide ${m.tint}`}>{m.role}</span>
-              </li>
-            ))}
+            {TEAM.map((m) => {
+              const key = m.role.toLowerCase() as typeof settings.role;
+              const isYou = settings.role === key;
+              return (
+                <li key={m.name} className={`flex items-center gap-3 rounded-lg border px-3.5 py-2.5 transition ${isYou ? "border-mango/60 bg-mango-soft/50" : "border-line bg-paper/60 hover:bg-pine-soft/50"}`}>
+                  <span className={`flex h-9 w-9 items-center justify-center rounded-full font-display text-xs font-extrabold ${m.tint}`}>
+                    {m.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold">
+                      {m.name}
+                      {isYou && <span className="ml-2 rounded bg-pine px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-mango">you · this session</span>}
+                    </p>
+                    <p className="truncate text-[11px] text-ink-soft">{m.desc}</p>
+                  </div>
+                  <span className={`rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide ${m.tint}`}>{m.role}</span>
+                </li>
+              );
+            })}
           </ul>
+          <p className="mt-3 flex items-start gap-2 text-[11px] leading-relaxed text-ink-soft">
+            <IconShield className="mt-0.5 h-3.5 w-3.5 shrink-0 text-pine" />
+            Demo switches the session role instantly. In cloud mode, per-user roles will be enforced server-side via a
+            <span className="mx-1 font-mono font-bold text-pine">store_members</span>table + RLS (Phase 2).
+          </p>
         </div>
       </Reveal>
 

@@ -15,7 +15,7 @@ import {
 import { useStore } from "../lib/store";
 import { Bars, Donut, HBars } from "../components/charts";
 import { CountUp, Delta, Reveal } from "../components/ui";
-import { CategoryGlyph, IconAlert, IconBasket, IconDown, IconPeso, IconUp, IconUsers } from "../components/Icons";
+import { CategoryGlyph, IconAlert, IconBasket, IconDown, IconPeso, IconUp } from "../components/Icons";
 
 const TIPS = [
   "Restock Lucky Me! before Friday — it's your #1 seller two weeks running.",
@@ -33,9 +33,21 @@ function greeting(lang: "en" | "tl") {
   return lang === "tl" ? tl : en;
 }
 
-export default function Dashboard() {
-  const { db, t, settings, addStock, sync } = useStore();
+export default function Dashboard({ go }: { go?: (v: string) => void }) {
+  const { db, t, settings, addStock } = useStore();
   const [tipIdx, setTipIdx] = useState(0);
+  const [clock, setClock] = useState(Date.now());
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setClock(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setTick((i) => i + 1), 3000);
+    return () => window.clearInterval(id);
+  }, []);
 
   useEffect(() => {
     const id = window.setInterval(() => setTipIdx((i) => (i + 1) % TIPS.length), 6000);
@@ -88,115 +100,113 @@ export default function Dashboard() {
     [agg7, db.products],
   );
 
-  const spark = useMemo(() => {
-    const max = Math.max(...series.map((s) => s.revenue), 1);
-    return series.map((s, i) => `${(i / (series.length - 1)) * 200},${44 - (s.revenue / max) * 38}`).join(" ");
-  }, [series]);
-
   const feed = db.movements.slice(0, 9);
+
+  /* live store state */
+  const hour = new Date(clock).getHours();
+  const open = hour >= 5 && hour < 22;
+  const dayPct = Math.min(100, Math.max(2, ((clock - (today0 + 5 * 3600000)) / (17 * 3600000)) * 100));
+  const recentSale = db.sales[tick % Math.max(db.sales.length, 1)];
 
   return (
     <div className="space-y-6">
-      {/* greeting */}
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-mango-deep">
-            {new Date().toLocaleDateString("en-PH", { weekday: "long", month: "long", day: "numeric" })}
-          </p>
-          <h1 className="font-display text-3xl font-extrabold leading-tight md:text-4xl">
-            {greeting(settings.lang)}, {settings.owner}
-            <span className="text-mango-deep">.</span>
-          </h1>
-        </div>
-        <p className="max-w-xs text-right text-sm text-ink-soft">
-          {settings.storeName} · ledger is{" "}
-          <span className={sync.status === "syncing" ? "font-semibold text-mango-deep" : "font-semibold text-leaf"}>
-            {sync.status === "syncing" ? "syncing…" : "up to date"}
-          </span>
-        </p>
-      </div>
+      {/* ---- store masthead: the counter itself ---- */}
+      <div className="relative overflow-hidden rounded-2xl border border-pine-deep/40 bg-pine text-card shadow-[0_24px_60px_-24px_rgba(11,39,27,0.55)]">
+        <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(720px 320px at 88% 0%, rgba(246,168,28,0.20), transparent 60%)" }} />
+        <div className="stripes-soft absolute inset-x-0 top-0 h-1.5" />
+        <p className="pointer-events-none absolute -bottom-14 right-0 select-none font-display text-[190px] font-extrabold leading-none text-card/[0.05]">₱</p>
 
-      {/* ledger strip */}
-      <div className="grid gap-4 lg:grid-cols-12">
-        <Reveal className="lg:col-span-7">
-          <div className="relative h-full overflow-hidden rounded-xl border border-pine bg-pine p-6 text-card shadow-lg">
-            <IconPeso className="pointer-events-none absolute -right-6 -top-8 h-48 w-48 text-card/[0.06]" />
-            <div className="absolute inset-x-0 top-0 h-1.5 stripes-soft" />
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-mango">
-              {t("totalSales")} · {t("today").toLowerCase()}
+        {/* receipt ticker — most recent sale, live */}
+        <div className="relative flex items-center gap-3 border-b border-dashed border-card/20 px-5 py-2.5 font-mono text-[11px] text-card/70">
+          <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-card/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-mango">
+            <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-mango" /> live
+          </span>
+          {recentSale ? (
+            <p key={tick} className="ticker-fade min-w-0 flex-1 truncate">
+              {fmtTime(recentSale.ts)} · <span className="font-bold text-card">{peso(recentSale.total)}</span> ·{" "}
+              {recentSale.payment === "gcash" ? "GCash" : recentSale.payment === "utang" ? "Utang" : "Cash"} ·{" "}
+              {recentSale.items.map((i) => `${i.qty}× ${i.name}`).join(", ")}
             </p>
-            <div className="mt-2 flex flex-wrap items-end gap-3">
-              <CountUp
-                value={stats.today.total}
-                fmt={peso0}
-                className="font-mono text-5xl font-bold tracking-tight text-mango"
-              />
+          ) : (
+            <p className="min-w-0 flex-1 truncate">Wala pang benta ngayon — i-record ang una sa baba.</p>
+          )}
+          <span className="tnum hidden shrink-0 sm:block">
+            {db.sales.filter((s) => s.ts >= today0).length} sales {t("today").toLowerCase()}
+          </span>
+        </div>
+
+        <div className="relative grid gap-7 px-5 py-6 md:grid-cols-12 md:px-8 md:py-7">
+          {/* the day's numbers, big */}
+          <div className="md:col-span-7">
+            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-mango">
+              {new Date(clock).toLocaleDateString("en-PH", { weekday: "long", month: "long", day: "numeric" })}
+            </p>
+            <h1 className="mt-1.5 font-display text-2xl font-extrabold leading-tight md:text-3xl">
+              {greeting(settings.lang)}, {settings.owner}
+              <span className="text-mango">.</span>
+            </h1>
+            <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.24em] text-card/60">{t("totalSales")}</p>
+            <p className="tnum font-display text-6xl font-extrabold leading-none tracking-tight text-mango md:text-7xl">
+              <CountUp value={stats.today.total} fmt={peso0} />
+            </p>
+            <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
               <Delta pct={deltaPct} />
-              <span className="pb-1 text-xs text-card/60">vs yesterday</span>
+              <span className="text-xs text-card/60">
+                vs {t("yesterday").toLowerCase()} · {peso0(stats.yest.total)}
+              </span>
             </div>
-            <div className="mt-3 flex items-center gap-4">
-              <svg viewBox="0 0 200 48" className="h-12 w-48 shrink-0" preserveAspectRatio="none">
-                <polyline points={spark} fill="none" stroke="#f6a81c" strokeWidth="2" opacity="0.9" />
-                <polyline points={`0,48 ${spark} 200,48`} fill="rgba(246,168,28,0.14)" stroke="none" />
-              </svg>
-              <p className="text-[11px] leading-relaxed text-card/60">
-                14-day trend
-                <br />
-                <span className="font-mono text-card/90">{peso0(series.reduce((s, x) => s + x.revenue, 0))} total</span>
-              </p>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2 border-t border-card/10 pt-4 text-xs">
-              {(
-                [
-                  ["Cash", mix.cash, "bg-leaf"],
-                  ["GCash", mix.gcash, "bg-gcash"],
-                  ["Utang", mix.utang, "bg-cherry"],
-                ] as const
-              ).map(([label, v, dot]) => (
-                <span key={label} className="inline-flex items-center gap-1.5 rounded-full bg-card/10 px-3 py-1.5 font-semibold">
-                  <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
-                  {label}
-                  <span className="tnum font-mono">{peso0(v)}</span>
-                </span>
+            <div className="mt-6 flex flex-wrap divide-x divide-dashed divide-card/20">
+              {[
+                [t("transactions"), String(stats.today.count)],
+                [t("itemsSold"), String(stats.today.items)],
+                [t("cash"), peso0(mix.cash)],
+                ["GCash", peso0(mix.gcash)],
+                [t("utangCollected"), peso0(stats.collected)],
+              ].map(([l, v]) => (
+                <div key={l} className="px-4 py-1 first:pl-0">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-card/50">{l}</p>
+                  <p className="tnum font-mono text-sm font-bold">{v}</p>
+                </div>
               ))}
             </div>
           </div>
-        </Reveal>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:col-span-5 lg:grid-cols-1">
-          <Reveal delay={80}>
-            <div className="flex h-full items-center justify-between rounded-xl border border-line bg-card p-5 shadow-sm">
+          {/* clock, open state, quick actions */}
+          <div className="flex flex-col justify-between gap-6 md:col-span-5">
+            <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-ink-soft">{t("transactions")}</p>
-                <p className="mt-1 font-mono text-3xl font-bold">
-                  <CountUp value={stats.today.count} />
-                </p>
-                <p className="mt-1 text-xs text-ink-soft">
-                  avg basket <span className="tnum font-mono font-semibold text-ink">{peso(stats.today.count ? stats.today.total / stats.today.count : 0)}</span>
-                </p>
+                <p className="tnum font-mono text-4xl font-bold tracking-tight">{fmtTime(clock)}</p>
+                <div className="mt-2.5 h-1.5 w-44 overflow-hidden rounded-full bg-card/15">
+                  <div className="h-full rounded-full bg-mango transition-[width] duration-1000 ease-linear" style={{ width: `${dayPct}%` }} />
+                </div>
+                <p className="mt-1.5 font-mono text-[10px] tracking-wide text-card/50">bukas 5:00 AM – 10:00 PM</p>
               </div>
-              <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-pine-soft text-pine">
-                <IconBasket className="h-6 w-6" />
+              <span className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-widest ${open ? "bg-leaf text-card" : "bg-card/10 text-card/60"}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${open ? "pulse-dot bg-card" : "bg-card/40"}`} />
+                {open ? "Open" : "Sarado"}
               </span>
             </div>
-          </Reveal>
-          <Reveal delay={140}>
-            <div className="flex h-full items-center justify-between rounded-xl border border-line bg-card p-5 shadow-sm">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-ink-soft">{t("utangCollected")}</p>
-                <p className="mt-1 font-mono text-3xl font-bold text-leaf">
-                  <CountUp value={stats.collected} fmt={peso0} />
-                </p>
-                <p className="mt-1 flex items-center gap-1 text-xs text-ink-soft">
-                  <IconUsers className="h-3.5 w-3.5" />
-                  {stats.payers.length} suki paid · {stats.today.items} items moved
-                </p>
-              </div>
-              <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-leaf-soft text-leaf">
-                <IconPeso className="h-6 w-6" />
-              </span>
+            <div className="grid grid-cols-5 gap-2">
+              <button
+                onClick={() => go?.("sales")}
+                className="btn-press col-span-5 flex items-center justify-center gap-2.5 rounded-xl bg-mango py-3.5 font-display text-sm font-extrabold uppercase tracking-wide text-pine-deep shadow-lg shadow-mango/25 transition hover:bg-mango-deep md:col-span-3"
+              >
+                <IconBasket className="h-5 w-5" /> {t("recordSale")}
+              </button>
+              <button
+                onClick={() => go?.("stock")}
+                className="btn-press col-span-2 flex items-center justify-center gap-2 rounded-xl border border-card/25 py-3.5 text-xs font-extrabold uppercase tracking-wide text-card transition hover:border-mango hover:text-mango md:col-span-1 md:flex-col md:gap-1 md:text-[10px]"
+              >
+                <IconUp className="h-4 w-4" /> Stock
+              </button>
+              <button
+                onClick={() => go?.("utang")}
+                className="btn-press col-span-3 flex items-center justify-center gap-2 rounded-xl border border-card/25 py-3.5 text-xs font-extrabold uppercase tracking-wide text-card transition hover:border-mango hover:text-mango md:col-span-1 md:flex-col md:gap-1 md:text-[10px]"
+              >
+                <IconPeso className="h-4 w-4" /> Utang
+              </button>
             </div>
-          </Reveal>
+          </div>
         </div>
       </div>
 

@@ -14,6 +14,7 @@ import {
   IconPhone,
   IconReceipt,
   IconRocket,
+  IconShield,
   IconUsers,
   LogoMark,
 } from "./components/Icons";
@@ -51,10 +52,41 @@ const VIEWS: Record<View, ComponentType> = {
   settings: SettingsView,
 };
 
+/** Role chips — access control per spec §10. Deploy is owner-only. */
+const ROLE_META: Record<string, { label: string; tint: string }> = {
+  owner: { label: "Owner", tint: "bg-mango text-pine-deep" },
+  helper: { label: "Helper", tint: "bg-leaf-soft text-leaf" },
+  accountant: { label: "Accountant", tint: "bg-gcash-soft text-gcash" },
+};
+
+function LockedPanel({ title, note }: { title: string; note: string }) {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="pop max-w-sm rounded-2xl border border-line bg-card p-8 text-center shadow-sm">
+        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-pine text-mango">
+          <IconShield className="h-7 w-7" />
+        </span>
+        <h2 className="mt-4 font-display text-xl font-extrabold">{title}</h2>
+        <p className="mt-2 text-sm leading-relaxed text-ink-soft">{note}</p>
+        <p className="mt-4 rounded-lg bg-paper px-3 py-2 font-mono text-[11px] text-ink-soft">
+          Settings → Team &amp; roles to switch
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function Shell() {
   const { db, t, settings, updateSettings, sync, toasts } = useStore();
   const [view, setView] = useState<View>("dashboard");
   const [device, setDevice] = useState<"web" | "mobile">("web");
+
+  /* ---- role-based access (spec §10) — Deploy is owner/admin only ---- */
+  const isAdmin = settings.role === "owner";
+  const visibleNav = NAV.filter((n) => n.key !== "deploy" || isAdmin);
+  useEffect(() => {
+    if (view === "deploy" && !isAdmin) setView("dashboard");
+  }, [view, isAdmin]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -89,6 +121,14 @@ function Shell() {
 
   return (
     <div className="noise min-h-screen">
+      {/* ambient wash behind the whole app */}
+      <div
+        className="pointer-events-none fixed inset-0"
+        style={{
+          background:
+            "radial-gradient(900px 480px at 92% -5%, rgba(246,168,28,0.10), transparent 62%), radial-gradient(760px 520px at -8% 105%, rgba(47,143,91,0.10), transparent 60%)",
+        }}
+      />
       <div className="stripes stripes-anim h-2.5" />
       <div className="flex">
         {/* sidebar */}
@@ -102,7 +142,7 @@ function Shell() {
           </div>
 
           <nav className="mt-2 flex-1 space-y-1 px-2 lg:px-3">
-            {NAV.map((n) => {
+            {visibleNav.map((n) => {
               const active = view === n.key;
               const b = badge(n.key);
               return (
@@ -171,6 +211,13 @@ function Shell() {
                     ]}
                   />
                 </div>
+                <span
+                  className={`hidden items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider transition sm:flex ${ROLE_META[settings.role]?.tint ?? "bg-paper text-ink-soft"}`}
+                  title="Role controls access — change it in Settings → Team & roles"
+                >
+                  <IconShield className="h-3.5 w-3.5" />
+                  {ROLE_META[settings.role]?.label ?? settings.role}
+                </span>
                 <span className="flex h-9 w-9 items-center justify-center rounded-full bg-mango font-display text-sm font-extrabold text-pine-deep shadow-sm" title={settings.owner}>
                   {settings.owner.replace("Aling ", "").replace("Mang ", "")[0] ?? "N"}
                 </span>
@@ -178,7 +225,7 @@ function Shell() {
             </div>
             {/* mobile web nav */}
             <nav className="flex gap-1 overflow-x-auto border-t border-line px-3 py-2 md:hidden">
-              {NAV.map((n) => (
+              {visibleNav.map((n) => (
                 <button
                   key={n.key}
                   onClick={() => setView(n.key)}
@@ -204,8 +251,19 @@ function Shell() {
             />
           </div>
 
-          <main className="mx-auto max-w-[1440px] px-4 py-5 md:px-6 md:py-7">
-            <Current />
+          <main className="relative mx-auto max-w-[1440px] px-4 py-5 md:px-6 md:py-7">
+            <div key={view} className="rise">
+              {view === "dashboard" ? (
+                <Dashboard go={(v) => setView(v as View)} />
+              ) : view === "deploy" && !isAdmin ? (
+                <LockedPanel
+                  title="Owner access only"
+                  note="Deployment, infra and cost settings are restricted to the store owner (admin). Helpers and accountants keep their day-to-day views."
+                />
+              ) : (
+                <Current />
+              )}
+            </div>
           </main>
 
           <footer className="no-print mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-2 px-4 pb-8 pt-2 text-[11px] text-ink-soft md:px-6">

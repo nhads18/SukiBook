@@ -30,12 +30,15 @@ import {
 } from "./supabase";
 import LoginGate from "../components/LoginGate";
 
+export type Role = "owner" | "helper" | "accountant";
+
 export interface Settings {
   lang: Lang;
   storeName: string;
   owner: string;
   autoSync: boolean;
   sheetsSync: boolean;
+  role: Role;
 }
 
 export interface Toast {
@@ -85,6 +88,7 @@ function loadInitial(): { db: DB; settings: Settings } {
     owner: "Aling Nena",
     autoSync: true,
     sheetsSync: true,
+    role: "owner",
   };
   try {
     const raw = localStorage.getItem(KEY);
