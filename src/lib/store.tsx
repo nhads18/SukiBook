@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -29,6 +30,19 @@ import {
   type CloudUser,
 } from "./supabase";
 import LoginGate from "../components/LoginGate";
+import AuthScreen, { type AuthPhase } from "../components/AuthScreen";
+import {
+  endSession,
+  getValidSession,
+  IDLE_LIMIT_MS,
+  isIdleLocked,
+  listUsers,
+  registerAccount,
+  remainingFails,
+  resetAccount,
+  touchSession,
+  verifyPin,
+} from "./auth";
 
 export type Role = "owner" | "helper" | "accountant";
 export type ThemeKey = "awning" | "barako" | "jeepney";
@@ -103,6 +117,14 @@ interface StoreCtx {
   login: (email: string) => Promise<void>;
   logout: () => void;
   continueDemo: () => void;
+  auth: { phase: AuthPhase | "ready"; email: string | null };
+  authUsers: { email: string; name: string; storeName: string }[];
+  authRegister: (email: string, name: string, storeName: string, pin: string) => Promise<string | null>;
+  authSignIn: (email: string, pin: string) => Promise<string | null>;
+  authUnlock: (pin: string) => Promise<string | null>;
+  lockNow: () => void;
+  signOut: () => void;
+  resetAccountAction: (email: string) => void;
 }
 
 const KEY = "sukibook:v3";
@@ -185,6 +207,114 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setToasts((ts) => [...ts.slice(-3), { id, kind, title, sub }]);
     window.setTimeout(() => setToasts((ts) => ts.filter((t) => t.id !== id)), 3600);
   }, []);
+
+  /* ---------------- local auth (PIN + session, spec §10) ---------------- */
+  const [auth, setAuth] = useState<{ phase: AuthPhase | "ready"; email: string | null }>(() => {
+    const users = listUsers();
+    if (users.length === 0) return { phase: "register", email: null };
+    const s = getValidSession();
+    if (!s) return { phase: "login", email: null };
+    if (isIdleLocked(s)) return { phase: "locked", email: s.email };
+    return { phase: "ready", email: s.email };
+  });
+  const lastTouch = useRef(Date.now());
+
+  /* activity tracking: idle 5 min → auto-lock */
+  useEffect(() => {
+    const touch = () => {
+      lastTouch.current = Date.now();
+      touchSession();
+    };
+    window.addEventListener("pointerdown", touch);
+    window.addEventListener("keydown", touch);
+    const iv = window.setInterval(() => {
+      setAuth((a) =>
+        a.phase === "ready" && Date.now() - lastTouch.current > IDLE_LIMIT_MS
+          ? { phase: "locked", email: a.email }
+          : a,
+      );
+    }, 15_000);
+    return () => {
+      window.removeEventListener("pointerdown", touch);
+      window.removeEventListener("keydown", touch);
+      window.clearInterval(iv);
+    };
+  }, []);
+
+  const authRegister = useCallback(
+    async (email: string, name: string, storeName: string, pin: string) => {
+      const res = await registerAccount(email, name, storeName, pin);
+      if (!res.ok) return res.error;
+      setSettings((s) => ({
+        ...s,
+        storeName: storeName.trim() || s.storeName,
+        owner: name.trim() || s.owner,
+      }));
+      lastTouch.current = Date.now();
+      setAuth({ phase: "ready", email: email.trim().toLowerCase() });
+      notify("ok", "Store opened", "Account created — PIN is salted & hashed on-device");
+      return null;
+    },
+    [notify],
+  );
+
+  const verify = useCallback(async (email: string, pin: string) => {
+    const res = await verifyPin(email, pin);
+    if (res.ok) return null;
+    if (res.reason === "locked") return `Locked for ${res.remaining}s — too many wrong PINs`;
+    if (res.reason === "no-user") return "No account for that email";
+    return `Wrong PIN — ${remainingFails(email)} tries left`;
+  }, []);
+
+  const authSignIn = useCallback(
+    async (email: string, pin: string) => {
+      const err = await verify(email, pin);
+      if (err) return err;
+      lastTouch.current = Date.now();
+      setAuth({ phase: "ready", email: email.trim().toLowerCase() });
+      return null;
+    },
+    [verify],
+  );
+
+  const authUnlock = useCallback(
+    async (pin: string) => {
+      const email = auth.email;
+      if (!email) return "Session expired — sign in again";
+      const err = await verify(email, pin);
+      if (err) return err;
+      lastTouch.current = Date.now();
+      setAuth({ phase: "ready", email });
+      return null;
+    },
+    [auth.email, verify],
+  );
+
+  const lockNow = useCallback(() => {
+    setAuth((a) => (a.phase === "ready" ? { phase: "locked", email: a.email } : a));
+  }, []);
+
+  const signOut = useCallback(() => {
+    endSession();
+    const users = listUsers();
+    setAuth(users.length ? { phase: "login", email: null } : { phase: "register", email: null });
+    notify("info", "Signed out", "Session ended — PIN required to reopen");
+  }, [notify]);
+
+  const resetAccountAction = useCallback(
+    (email: string) => {
+      const left = resetAccount(email);
+      setAuth(left ? { phase: "login", email: null } : { phase: "register", email: null });
+      notify("info", "Account removed", "Ledger data was kept on this device");
+    },
+    [notify],
+  );
+
+  const authUsers = useMemo(
+    () => listUsers().map(({ email, name, storeName }) => ({ email, name, storeName })),
+    // recompute whenever the gate re-renders
+    [auth.phase],
+  );
 
   /* debounced offline-first push: every local mutation lands in Supabase */
   const schedulePush = useCallback(() => {
@@ -423,6 +553,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     recordSale, recordPayment, addUtang, addCustomer,
     updateProduct, addProduct, addStock, updateSettings, resetDemo,
     cloud, login, logout, continueDemo,
+    auth, authUsers, authRegister, authSignIn, authUnlock, lockNow, signOut, resetAccountAction,
   };
 
   if (cloud.mode === "gate") {
@@ -432,6 +563,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         sent={gateSent}
         onSend={login}
         onDemo={continueDemo}
+      />
+    );
+  }
+
+  /* Local PIN gate — skipped only when a live Supabase session owns auth. */
+  if (!cloudUser && auth.phase !== "ready") {
+    return (
+      <AuthScreen
+        phase={auth.phase}
+        email={auth.email}
+        users={authUsers}
+        onRegister={authRegister}
+        onSignIn={authSignIn}
+        onUnlock={authUnlock}
+        onResetAccount={resetAccountAction}
       />
     );
   }

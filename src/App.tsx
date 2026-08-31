@@ -10,6 +10,7 @@ import {
   IconCheck,
   IconDash,
   IconGear,
+  IconLock,
   IconMonitor,
   IconPalette,
   IconPhone,
@@ -143,7 +144,7 @@ function ThemeMenu({ value, onChange }: { value: ThemeKey; onChange: (t: ThemeKe
 }
 
 function Shell() {
-  const { db, t, settings, updateSettings, sync, toasts } = useStore();
+  const { db, t, settings, updateSettings, sync, toasts, lockNow, auth } = useStore();
   const [view, setView] = useState<View>("dashboard");
   const [device, setDevice] = useState<"web" | "mobile">("web");
 
@@ -284,6 +285,14 @@ function Shell() {
               <IconShield className="h-3.5 w-3.5" />
               {ROLE_META[settings.role]?.label ?? settings.role}
             </span>
+            <button
+              onClick={lockNow}
+              title={`Lock the register now · auto-locks after 5 min idle${auth.email ? ` · ${auth.email}` : ""}`}
+              className="btn-press rounded-md border border-line bg-card p-2 text-ink-soft transition hover:border-pine hover:bg-pine-soft hover:text-pine"
+              aria-label="Lock now"
+            >
+              <IconLock className="h-4 w-4" />
+            </button>
           </div>
           <div className="stripes h-1" />
         </header>

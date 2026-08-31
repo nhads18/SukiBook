@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useStore, THEMES } from "../lib/store";
 import { Field, Modal, Reveal, Seg } from "../components/ui";
-import { IconCheck, IconGear, IconPalette, IconShield, IconSheets, IconSync, IconUsers } from "../components/Icons";
+import { IconCheck, IconGear, IconLock, IconPalette, IconShield, IconSheets, IconSync, IconUsers } from "../components/Icons";
 import type { Lang } from "../lib/i18n";
 
 function Switch({ on, onToggle }: { on: boolean; onToggle: () => void }) {
@@ -43,7 +43,20 @@ function SecurityCard({ mode, phones }: { mode: "demo" | "cloud" | "gate"; phone
       {
         label: "Auth",
         ok: true,
-        detail: mode === "cloud" ? "Supabase magic link, per-store session" : "Magic-link gate ready (demo bypass)",
+        detail:
+          mode === "cloud"
+            ? "Supabase magic link + register PIN, per-store session"
+            : "Register PIN — PBKDF2-SHA256 (120k iters), salted, never stored",
+      },
+      {
+        label: "Access control",
+        ok: true,
+        detail: "5-min idle auto-lock · 30 s lockout after 5 tries · 8 h session TTL",
+      },
+      {
+        label: "Roles",
+        ok: true,
+        detail: "Owner / helper / accountant — Deploy & Go Live owner-only, profits masked for helpers",
       },
       {
         label: "Offline cache hygiene",
@@ -93,7 +106,7 @@ function SecurityCard({ mode, phones }: { mode: "demo" | "cloud" | "gate"; phone
 }
 
 export default function SettingsView() {
-  const { db, t, settings, updateSettings, notify, resetDemo, cloud, logout } = useStore();
+  const { db, t, settings, updateSettings, notify, resetDemo, cloud, logout, auth, signOut, lockNow } = useStore();
   const [resetOpen, setResetOpen] = useState(false);
 
   const TEAM = [
@@ -242,6 +255,65 @@ export default function SettingsView() {
 
       {/* right column */}
       <div className="space-y-5 lg:col-span-5">
+        {/* account & session */}
+        <Reveal delay={15}>
+          <div className="overflow-hidden rounded-xl border border-line bg-card shadow-sm">
+            <div className="stripes-soft h-1.5" />
+            <div className="p-5">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-pine text-mango">
+                  <IconLock className="h-5 w-5" />
+                </span>
+                <div>
+                  <h2 className="font-display text-lg font-bold">Account &amp; session</h2>
+                  <p className="text-xs text-ink-soft">Register PIN guards the whole ledger</p>
+                </div>
+              </div>
+              <div className="mt-4 rounded-lg bg-paper/70 px-3.5 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold">{auth.email ?? "—"}</p>
+                    <p className="mt-0.5 font-mono text-[10px] text-ink-soft">
+                      PIN · PBKDF2-SHA256 (120k) · salted per account
+                    </p>
+                  </div>
+                  <span className="flex items-center gap-1.5 rounded-full bg-leaf-soft px-2.5 py-1 text-[10px] font-extrabold uppercase text-leaf">
+                    <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-leaf" /> Active
+                  </span>
+                </div>
+              </div>
+              <ul className="mt-3 space-y-1.5 text-[11px] text-ink-soft">
+                <li className="flex items-center gap-2">
+                  <IconCheck className="h-3.5 w-3.5 shrink-0 text-leaf" /> Auto-locks after <span className="font-mono font-bold text-ink">5 min</span> idle — PIN to reopen
+                </li>
+                <li className="flex items-center gap-2">
+                  <IconCheck className="h-3.5 w-3.5 shrink-0 text-leaf" /> 5 wrong tries → <span className="font-mono font-bold text-ink">30 s</span> lockout
+                </li>
+                <li className="flex items-center gap-2">
+                  <IconCheck className="h-3.5 w-3.5 shrink-0 text-leaf" /> Session expires after <span className="font-mono font-bold text-ink">8 h</span>
+                </li>
+              </ul>
+              <div className="mt-4 flex gap-2">
+                <button
+                  onClick={() => lockNow()}
+                  className="btn-press flex-1 rounded-lg border border-line bg-card py-2 text-xs font-extrabold uppercase tracking-wide text-ink transition hover:border-pine hover:bg-pine-soft hover:text-pine"
+                >
+                  Lock now
+                </button>
+                <button
+                  onClick={() => {
+                    signOut();
+                    notify("info", "Signed out", "PIN required to reopen the store");
+                  }}
+                  className="btn-press flex-1 rounded-lg border border-cherry/40 bg-cherry-soft/50 py-2 text-xs font-extrabold uppercase tracking-wide text-cherry transition hover:bg-cherry hover:text-cherry-soft"
+                >
+                  Sign out
+                </button>
+              </div>
+            </div>
+          </div>
+        </Reveal>
+
         <Reveal delay={30}>
           <div className="rounded-xl border border-line bg-card p-5 shadow-sm">
             <div className="flex items-start justify-between gap-3">

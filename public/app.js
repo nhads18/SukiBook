@@ -1,15 +1,8 @@
-/* Stable boot shim — loaded by the fallback path in index.html.
-   Tries the sibling assets folder first (served from dist/), then the
-   repo layout (served from project root). Keep hashes in sync with builds. */
-const BASES = ["./assets/index-Bp19ciYX.js", "../dist/assets/index-Bp19ciYX.js"];
-async function boot() {
-  for (const src of BASES) {
-    try {
-      await import(src);
-      return;
-    } catch (e) {
-      // try next base
-    }
-  }
+/* Stable boot shim — resolved by the fallback loader in index.html when the
+   dev entry (/src/main.tsx) has no live transform. Tries the sibling assets
+   dir first (dist-root hosting), then the repo dist/ (project-root hosting). */
+try {
+  await import("./assets/index-DvMFYdd8.js");
+} catch {
+  await import("../dist/assets/index-DvMFYdd8.js");
 }
-boot();

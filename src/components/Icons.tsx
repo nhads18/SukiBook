@@ -241,6 +241,20 @@ export const IconPalette = (p: P) => (
   </S>
 );
 
+export const IconLock = (p: P) => (
+  <S {...p}>
+    <rect x="5.5" y="10.5" width="13" height="9.5" rx="2" />
+    <path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5M12 14.5v2" />
+  </S>
+);
+
+export const IconBackspace = (p: P) => (
+  <S {...p}>
+    <path d="M8.5 6h11A1.5 1.5 0 0 1 21 7.5v9a1.5 1.5 0 0 1-1.5 1.5h-11L3 12z" />
+    <path d="m12 9.5 5 5M17 9.5l-5 5" />
+  </S>
+);
+
 export const IconShield = (p: P) => (
   <S {...p}>
     <path d="M12 3.5 5 6.2v5.3c0 4.4 2.9 7.4 7 9 4.1-1.6 7-4.6 7-9V6.2z" />
