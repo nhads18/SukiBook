@@ -320,18 +320,19 @@ export function CategoryGlyph({ cat, className = "w-5 h-5" }: { cat: Cat; classN
 }
 
 /* ------------ brand mark: little awning over a peso coin ---------- */
+/* Uses tokens so the mark re-skins with the active theme.            */
 
 export function LogoMark({ className = "w-9 h-9" }: P) {
   return (
     <svg viewBox="0 0 40 40" className={className} aria-hidden="true">
-      <rect x="1" y="1" width="38" height="38" rx="9" fill="#103524" />
+      <rect x="1" y="1" width="38" height="38" rx="9" fill="var(--color-pine)" />
       <path
         d="M7 12h26l-2.5 5.5c-.8 1.7-3.2 1.7-4 0-.8 1.7-3.2 1.7-4 0-.8 1.7-3.2 1.7-4 0-.8 1.7-3.2 1.7-4 0-.8 1.7-3.2 1.7-4 0L7 12z"
-        fill="#F6A81C"
+        fill="var(--color-mango)"
       />
       <path
         d="M16 31V19.5h5a3.4 3.4 0 0 1 0 6.8h-5M13.5 23.5h10M13.5 26.5h8.5"
-        stroke="#F6A81C"
+        stroke="var(--color-mango)"
         strokeWidth="2"
         strokeLinecap="round"
         fill="none"
@@ -339,6 +340,15 @@ export function LogoMark({ className = "w-9 h-9" }: P) {
     </svg>
   );
 }
+
+export const IconPalette = (p: P) => (
+  <S {...p}>
+    <path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.6 0 2.1-1 1.5-2.1-.6-1.1-.1-2.4 1.4-2.4h1.6c2.2 0 4-1.8 4-4 0-4.7-3.8-8.5-8.5-8.5z" />
+    <circle cx="7.8" cy="10.2" r="0.6" />
+    <circle cx="11.6" cy="7.4" r="0.6" />
+    <circle cx="16" cy="9.6" r="0.6" />
+  </S>
+);
 
 export const IconShield = (p: P) => (
   <S {...p}>

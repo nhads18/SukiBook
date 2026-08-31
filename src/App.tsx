@@ -1,5 +1,5 @@
-import { useEffect, useState, type ComponentType } from "react";
-import { StoreProvider, useStore } from "./lib/store";
+import { useEffect, useRef, useState, type ComponentType } from "react";
+import { StoreProvider, useStore, THEMES, type ThemeKey } from "./lib/store";
 import { lowStock, overdueDays } from "./lib/data";
 import type { StrKey } from "./lib/i18n";
 import type { Lang } from "./lib/i18n";
@@ -8,9 +8,11 @@ import {
   IconBasket,
   IconBox,
   IconChart,
+  IconCheck,
   IconDash,
   IconGear,
   IconMonitor,
+  IconPalette,
   IconPhone,
   IconReceipt,
   IconRocket,
@@ -72,6 +74,69 @@ function LockedPanel({ title, note }: { title: string; note: string }) {
           Settings → Team &amp; roles to switch
         </p>
       </div>
+    </div>
+  );
+}
+
+/** Compact theme popover for the topbar — swatch preview + instant re-skin. */
+function ThemeMenu({ value, onChange }: { value: ThemeKey; onChange: (t: ThemeKey) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    window.addEventListener("mousedown", onDown);
+    return () => window.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  const active = THEMES.find((t) => t.key === value);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        title="Theme"
+        className={`btn-press flex h-9 w-9 items-center justify-center rounded-lg border transition ${
+          open ? "border-pine bg-pine text-mango" : "border-line bg-card text-ink-soft hover:border-pine hover:text-pine"
+        }`}
+      >
+        <IconPalette className="h-4.5 w-4.5" />
+      </button>
+      {open && (
+        <div className="pop absolute right-0 top-full z-50 mt-2 w-64 rounded-xl border border-line bg-card p-2 shadow-[0_18px_44px_-12px_rgba(11,39,27,0.35)]">
+          <p className="px-2.5 pb-1.5 pt-1 text-[10px] font-extrabold uppercase tracking-widest text-ink-soft">Theme</p>
+          {THEMES.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => {
+                onChange(t.key);
+                setOpen(false);
+              }}
+              className={`btn-press flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition ${
+                t.key === value ? "bg-pine text-card" : "hover:bg-paper"
+              }`}
+            >
+              <span className="flex -space-x-1.5">
+                {t.swatches.map((s, i) => (
+                  <span key={i} className="h-5 w-5 rounded-full border-2 border-card" style={{ background: s }} />
+                ))}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-bold leading-tight" style={{ fontFamily: t.font }}>
+                  {t.name}
+                </span>
+                <span className={`block truncate text-[10px] leading-snug ${t.key === value ? "text-card/60" : "text-ink-soft"}`}>
+                  {t.tagline}
+                </span>
+              </span>
+              {t.key === value && <IconCheck className="h-4 w-4 shrink-0 text-mango" />}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -191,6 +256,7 @@ function Shell() {
                 <div className="hidden xl:block">
                   <SyncPill status={sync.status} last={sync.last} syncedLabel={t("synced")} syncingLabel={t("syncing")} />
                 </div>
+                <ThemeMenu value={settings.theme} onChange={(theme) => updateSettings({ theme })} />
                 <Seg<Lang>
                   size="sm"
                   value={settings.lang}

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { useStore } from "../lib/store";
+import { useStore, THEMES } from "../lib/store";
 import { Field, Modal, Reveal, Seg } from "../components/ui";
-import { IconCheck, IconGear, IconShield, IconSheets, IconSync, IconUsers } from "../components/Icons";
+import { IconCheck, IconGear, IconPalette, IconShield, IconSheets, IconSync, IconUsers } from "../components/Icons";
 import type { Lang } from "../lib/i18n";
 
 function Switch({ on, onToggle }: { on: boolean; onToggle: () => void }) {
@@ -134,7 +134,7 @@ const TEAM = [
 ];
 
 export default function SettingsView() {
-  const { db, settings, updateSettings, notify, resetDemo, cloud, logout } = useStore();
+  const { db, t, settings, updateSettings, notify, resetDemo, cloud, logout } = useStore();
   const [name, setName] = useState(settings.storeName);
   const [owner, setOwner] = useState(settings.owner);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -241,6 +241,69 @@ export default function SettingsView() {
                 { key: "tl", label: "Tagalog" },
               ]}
             />
+          </div>
+        </Reveal>
+
+        {/* theme */}
+        <Reveal delay={85}>
+          <div className="rounded-xl border border-line bg-card p-5 shadow-sm">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-pine-soft text-pine">
+                <IconPalette className="h-5 w-5" />
+              </span>
+              <div>
+                <h2 className="font-display text-lg font-bold">{t("theme.title")}</h2>
+                <p className="text-xs text-ink-soft">{t("theme.desc")}</p>
+              </div>
+            </div>
+            <div className="mt-4 space-y-2.5">
+              {THEMES.map((th) => {
+                const active = settings.theme === th.key;
+                return (
+                  <button
+                    key={th.key}
+                    onClick={() => updateSettings({ theme: th.key })}
+                    className={`btn-press relative flex w-full items-center gap-3.5 overflow-hidden rounded-xl border p-3.5 text-left transition ${
+                      active ? "border-pine bg-pine text-card shadow-md" : "border-line bg-paper/50 hover:border-pine/50 hover:bg-pine-soft/40"
+                    }`}
+                  >
+                    {/* stripe preview along the left edge */}
+                    <span
+                      className="absolute inset-y-0 left-0 w-1.5"
+                      style={{
+                        background: `repeating-linear-gradient(180deg, ${th.swatches[1]} 0 8px, ${th.swatches[0]} 8px 16px)`,
+                      }}
+                    />
+                    <span className="ml-2 flex -space-x-2">
+                      {th.swatches.map((s, i) => (
+                        <span
+                          key={i}
+                          className={`h-7 w-7 rounded-full border-2 ${active ? "border-card/30" : "border-card"}`}
+                          style={{ background: s }}
+                        />
+                      ))}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-baseline gap-2">
+                        <span className="text-base font-extrabold leading-none" style={{ fontFamily: th.font }}>
+                          {th.name}
+                        </span>
+                        <span
+                          className={`font-mono text-sm font-bold ${active ? "text-mango" : "text-pine"}`}
+                          style={{ fontFamily: th.font }}
+                        >
+                          ₱
+                        </span>
+                      </span>
+                      <span className={`mt-1 block truncate text-[11px] leading-snug ${active ? "text-card/65" : "text-ink-soft"}`}>
+                        {th.tagline}
+                      </span>
+                    </span>
+                    {active && <IconCheck className="h-5 w-5 shrink-0 text-mango" />}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </Reveal>
 
