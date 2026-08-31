@@ -350,6 +350,21 @@ export const IconPalette = (p: P) => (
   </S>
 );
 
+export const IconPower = (p: P) => (
+  <S {...p}>
+    <path d="M8.2 5.3a8 8 0 1 0 7.6 0" />
+    <path d="M12 2.5V11" />
+  </S>
+);
+
+export const IconExternal = (p: P) => (
+  <S {...p}>
+    <path d="M13.5 4.5H19.5V10.5" />
+    <path d="m19.5 4.5-8.5 8.5" />
+    <path d="M19 13.5v5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 18.5v-11A1.5 1.5 0 0 1 6.5 6h5" />
+  </S>
+);
+
 export const IconShield = (p: P) => (
   <S {...p}>
     <path d="M12 3.5 5 6.2v5.3c0 4.4 2.9 7.4 7 9 4.1-1.6 7-4.6 7-9V6.2z" />

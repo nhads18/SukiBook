@@ -19,6 +19,67 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      /* Zombie service-worker purge: earlier builds registered an SW that can
+         pin this page to a stale cached shell, hiding fresh rebuilds forever.
+         Force-unregister any SW and clear app caches so every build shows. */
+      try {
+        if ("serviceWorker" in navigator && navigator.serviceWorker.getRegistrations) {
+          navigator.serviceWorker.getRegistrations().then(function (regs) {
+            regs.forEach(function (r) {
+              r.unregister();
+            });
+          });
+        }
+        if ("caches" in window) {
+          caches.keys().then(function (keys) {
+            keys
+              .filter(function (k) {
+                return k.indexOf("sukibook") === 0;
+              })
+              .forEach(function (k) {
+                caches.delete(k);
+              });
+          });
+        }
+      } catch (e) {
+        /* non-fatal */
+      }
+    </script>
+    <script>
+      /* Boot watchdog — if the app never mounts (blocked asset, module error,
+         stale cache), show a readable recovery card instead of a white screen. */
+      window.__bootError = null;
+      /* capture-phase: also catches failed module/resource loads (they don't bubble) */
+      window.addEventListener(
+        "error",
+        function (e) {
+          var t = e && e.target;
+          if (t && (t.src || t.href)) {
+            window.__bootError = "Failed to load: " + (t.src || t.href);
+          } else if (!window.__bootError) {
+            window.__bootError = (e && e.message) || "Unknown load error";
+          }
+        },
+        true,
+      );
+      window.setTimeout(function () {
+        var root = document.getElementById("root");
+        if (!root || root.children.length > 0) return;
+        root.innerHTML =
+          '<div style="min-height:100vh;display:grid;place-items:center;background:#f1f2ea;font-family:Instrument Sans,sans-serif;padding:24px">' +
+          '<div style="max-width:440px;background:#fcfcf7;border:1px solid #e0e2d2;border-radius:14px;padding:28px;box-shadow:0 20px 50px -20px rgba(11,39,27,.35)">' +
+          '<p style="margin:0;font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#d98a0b">SukiBook · load check</p>' +
+          '<h1 style="margin:8px 0 10px;font-family:Bricolage Grotesque,sans-serif;font-size:24px;color:#1b2a21">The app did not boot</h1>' +
+          '<p style="margin:0;font-size:13px;line-height:1.6;color:#4c5c51">Almost always a stale preview cache. The buttons below recover in one tap' +
+          (window.__bootError ? '.</p><pre style="margin:14px 0 0;padding:12px;border-radius:10px;background:#0b271b;color:#f6a81c;font-size:11px;white-space:pre-wrap">' +
+          String(window.__bootError).replace(/</g, "&lt;") + "</pre>" : ".</p>") +
+          '<div style="display:flex;gap:10px;margin-top:18px">' +
+          '<button onclick="window.location.reload()" style="flex:1;border:0;border-radius:10px;background:#f6a81c;color:#0b271b;font-weight:800;padding:10px 0;cursor:pointer">Reload</button>' +
+          '<button onclick="try{localStorage.removeItem(\'sukibook:v3\')}catch(e){} if(\'caches\' in window){caches.keys().then(function(k){k.forEach(function(n){caches.delete(n)})})} window.location.reload(true)" style="flex:1;border:1px solid #e0e2d2;border-radius:10px;background:#fcfcf7;color:#1b2a21;font-weight:700;padding:10px 0;cursor:pointer">Clear cache & reload</button>' +
+          "</div></div></div>";
+      }, 2500);
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

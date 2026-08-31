@@ -14,6 +14,7 @@ import {
   IconMonitor,
   IconPalette,
   IconPhone,
+  IconPower,
   IconReceipt,
   IconRocket,
   IconShield,
@@ -27,10 +28,11 @@ import StockView from "./views/Stock";
 import UtangView from "./views/Utang";
 import ReportsView from "./views/Reports";
 import DeployView from "./views/Deploy";
+import GoLiveView from "./views/GoLive";
 import SettingsView from "./views/Settings";
 import MobileScene from "./Mobile";
 
-type View = "dashboard" | "sales" | "products" | "stock" | "utang" | "reports" | "deploy" | "settings";
+type View = "dashboard" | "sales" | "products" | "stock" | "utang" | "reports" | "deploy" | "golive" | "settings";
 
 const NAV: { key: View; icon: ComponentType<{ className?: string }>; label: StrKey }[] = [
   { key: "dashboard", icon: IconDash, label: "nav.dashboard" },
@@ -40,6 +42,7 @@ const NAV: { key: View; icon: ComponentType<{ className?: string }>; label: StrK
   { key: "utang", icon: IconUsers, label: "nav.utang" },
   { key: "reports", icon: IconChart, label: "nav.reports" },
   { key: "deploy", icon: IconRocket, label: "nav.deploy" },
+  { key: "golive", icon: IconPower, label: "nav.golive" },
   { key: "settings", icon: IconGear, label: "nav.settings" },
 ];
 
@@ -51,6 +54,7 @@ const VIEWS: Record<View, ComponentType> = {
   utang: UtangView,
   reports: ReportsView,
   deploy: DeployView,
+  golive: GoLiveView,
   settings: SettingsView,
 };
 
@@ -146,12 +150,24 @@ function Shell() {
   const [view, setView] = useState<View>("dashboard");
   const [device, setDevice] = useState<"web" | "mobile">("web");
 
-  /* ---- role-based access (spec §10) — Deploy is owner/admin only ---- */
+  /* ---- role-based access (spec §10) — Deploy & Go Live are owner/admin only ---- */
   const isAdmin = settings.role === "owner";
-  const visibleNav = NAV.filter((n) => n.key !== "deploy" || isAdmin);
+  const visibleNav = NAV.filter((n) => (n.key !== "deploy" && n.key !== "golive") || isAdmin);
   useEffect(() => {
-    if (view === "deploy" && !isAdmin) setView("dashboard");
+    if ((view === "deploy" || view === "golive") && !isAdmin) setView("dashboard");
   }, [view, isAdmin]);
+
+  /* cross-view navigation (e.g. Settings "Go live →" button) */
+  useEffect(() => {
+    const onNav = (e: Event) => {
+      const target = (e as CustomEvent<string>).detail as View;
+      setDevice("web");
+      setView(target);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+    window.addEventListener("sukibook-nav", onNav);
+    return () => window.removeEventListener("sukibook-nav", onNav);
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

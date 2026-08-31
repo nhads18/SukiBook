@@ -54,9 +54,12 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   </Boundary>,
 );
 
-// PWA: cache the app shell so cached reports stay readable offline (spec §9).
-if ("serviceWorker" in navigator && import.meta.env.PROD) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => undefined);
-  });
-}
+// NOTE: service-worker registration is intentionally disabled in preview
+// builds — a previously-registered SW can pin the preview to a stale cached
+// shell and mask fresh rebuilds (see the purge script in index.html).
+// For production PWA offline support (spec §9), re-enable:
+//   if ("serviceWorker" in navigator && import.meta.env.PROD) {
+//     window.addEventListener("load", () =>
+//       navigator.serviceWorker.register("/sw.js").catch(() => undefined),
+//     );
+//   }
