@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { downloadCSV, fmtDay, fmtTime, overdueDays, peso0, type Customer } from "../lib/data";
 import { useStore } from "../lib/store";
-import { CountUp, Field, Modal, Reveal, Seg } from "../components/ui";
+import { CountUp, Reveal, Seg } from "../components/ui";
 import { IconCheck, IconClock, IconPlus, IconSearch, IconSms, IconUsers, IconX } from "../components/Icons";
 
 export default function UtangView() {
@@ -10,8 +10,17 @@ export default function UtangView() {
   const [sort, setSort] = useState<"balance" | "overdue">("balance");
   const [selId, setSelId] = useState<string | null>(null);
   const [payAmt, setPayAmt] = useState("");
-  const [addModal, setAddModal] = useState(false);
   const [newCust, setNewCust] = useState({ name: "", phone: "" });
+  const [justAdded, setJustAdded] = useState<string | null>(null);
+
+  const quickAdd = () => {
+    if (!newCust.name.trim()) return;
+    const id = addCustomer(newCust.name.trim(), newCust.phone.trim() || "—");
+    setNewCust({ name: "", phone: "" });
+    setJustAdded(id);
+    setSelId(id);
+    window.setTimeout(() => setJustAdded(null), 2200);
+  };
 
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -39,17 +48,45 @@ export default function UtangView() {
       {/* list */}
       <div className="lg:col-span-5">
         <Reveal>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="relative min-w-48 flex-1">
-              <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft" />
-              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Hanapin ang suki…" className="field pl-9" />
+          <div className="relative">
+            <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Hanapin ang suki…" className="field pl-9" />
+          </div>
+        </Reveal>
+
+        {/* quick-add: walang modal — type, Enter, tapos */}
+        <Reveal delay={40}>
+          <div className="mt-3 overflow-hidden rounded-xl border border-pine/25 bg-card shadow-sm">
+            <div className="stripes-soft h-1" />
+            <div className="flex flex-wrap items-center gap-2 p-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-pine text-mango" title="Bagong suki">
+                <IconUsers className="h-[18px] w-[18px]" />
+              </span>
+              <input
+                value={newCust.name}
+                onChange={(e) => setNewCust({ ...newCust, name: e.target.value })}
+                onKeyDown={(e) => e.key === "Enter" && quickAdd()}
+                placeholder="Bagong suki — pangalan…"
+                className="field min-w-32 flex-1 px-3 py-2 text-sm"
+              />
+              <input
+                value={newCust.phone}
+                onChange={(e) => setNewCust({ ...newCust, phone: e.target.value })}
+                onKeyDown={(e) => e.key === "Enter" && quickAdd()}
+                placeholder="09…"
+                className="field w-28 px-3 py-2 text-sm"
+              />
+              <button
+                onClick={quickAdd}
+                disabled={!newCust.name.trim()}
+                className="btn-press inline-flex items-center gap-1.5 rounded-lg bg-mango px-4 py-2 text-xs font-extrabold uppercase tracking-wide text-pine-deep transition enabled:hover:bg-mango-deep disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <IconPlus className="h-3.5 w-3.5" /> Suki
+              </button>
             </div>
-            <button
-              onClick={() => setAddModal(true)}
-              className="btn-press inline-flex items-center gap-2 rounded-lg bg-pine px-3.5 py-2 text-xs font-extrabold uppercase tracking-wide text-mango shadow-md transition hover:bg-pine-deep"
-            >
-              <IconPlus className="h-4 w-4" /> Suki
-            </button>
+            <p className="border-t border-dashed border-line px-3 py-1.5 font-mono text-[10px] text-ink-soft">
+              Enter lang — naka-save agad, pwede nang i-utang
+            </p>
           </div>
         </Reveal>
 
@@ -79,18 +116,24 @@ export default function UtangView() {
                   <button
                     onClick={() => setSelId(c.id)}
                     className={`btn-press flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition hover:-translate-y-0.5 hover:shadow-md ${
-                      selId === c.id ? "border-pine bg-pine text-card" : od > 7 ? "border-cherry/40 bg-cherry-soft/40" : "border-line bg-card"
+                      justAdded === c.id
+                        ? "pop border-mango bg-mango-soft/70 ring-2 ring-mango/50"
+                        : selId === c.id
+                          ? "border-pine bg-pine text-card"
+                          : od > 7
+                            ? "border-cherry/40 bg-cherry-soft/40"
+                            : "border-line bg-card"
                     }`}
                   >
                     <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-display text-xs font-extrabold ${selId === c.id ? "bg-mango text-pine-deep" : "bg-pine-soft text-pine"}`}>
                       {c.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-bold">{c.name}</span>
-                      <span className={`block font-mono text-[11px] ${selId === c.id ? "text-card/60" : "text-ink-soft"}`}>{c.phone}</span>
+                      <span className={`block truncate text-sm font-bold ${justAdded === c.id ? "text-ink" : ""}`}>{c.name}</span>
+                      <span className={`block font-mono text-[11px] ${selId === c.id && justAdded !== c.id ? "text-card/60" : "text-ink-soft"}`}>{c.phone}</span>
                     </span>
                     <span className="text-right">
-                      <span className={`tnum block font-mono text-sm font-extrabold ${c.balance === 0 ? (selId === c.id ? "text-leaf-soft" : "text-leaf") : selId === c.id ? "text-mango" : "text-cherry"}`}>
+                      <span className={`tnum block font-mono text-sm font-extrabold ${c.balance === 0 ? (selId === c.id && justAdded !== c.id ? "text-leaf-soft" : "text-leaf") : selId === c.id && justAdded !== c.id ? "text-mango" : "text-cherry"}`}>
                         {peso0(c.balance)}
                       </span>
                       {od > 7 && (
@@ -216,24 +259,6 @@ export default function UtangView() {
         )}
       </div>
 
-      <Modal open={addModal} onClose={() => setAddModal(false)} title="Bagong suki">
-        <div className="space-y-3.5">
-          <Field label="Name" value={newCust.name} onChange={(e) => setNewCust({ ...newCust, name: e.target.value })} placeholder="e.g. Aling Rosing" />
-          <Field label="Phone" value={newCust.phone} onChange={(e) => setNewCust({ ...newCust, phone: e.target.value })} placeholder="0917 …" />
-          <button
-            onClick={() => {
-              if (!newCust.name.trim()) return;
-              addCustomer(newCust.name.trim(), newCust.phone.trim() || "—");
-              setNewCust({ name: "", phone: "" });
-              setAddModal(false);
-            }}
-            disabled={!newCust.name.trim()}
-            className="btn-press w-full rounded-lg bg-mango py-2.5 font-display text-sm font-extrabold uppercase tracking-wide text-pine-deep transition enabled:hover:bg-mango-deep disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Save suki
-          </button>
-        </div>
-      </Modal>
     </div>
   );
 }

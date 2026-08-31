@@ -1,8 +1,10 @@
-/* Stable boot shim — resolved by the fallback loader in index.html when the
-   dev entry (/src/main.tsx) has no live transform. Tries the sibling assets
-   dir first (dist-root hosting), then the repo dist/ (project-root hosting). */
-try {
-  await import("./assets/index-DvMFYdd8.js");
-} catch {
-  await import("../dist/assets/index-DvMFYdd8.js");
+/* Stable boot shim — resolves the hashed production bundle.
+   Dual-path: works whether this page is served from dist/ or the project root. */
+async function start() {
+  try {
+    await import("./assets/index-4oeHuj32.js");
+  } catch (_e) {
+    await import("../dist/assets/index-4oeHuj32.js");
+  }
 }
+start();

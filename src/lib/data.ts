@@ -55,12 +55,24 @@ export interface Movement {
   qty: number; // positive = in, negative = out
 }
 
+export type StaffRole = "helper" | "accountant";
+
+export interface Staff {
+  id: string;
+  name: string;
+  phone: string;
+  role: StaffRole;
+  active: boolean;
+  addedAt: number;
+}
+
 export interface DB {
   anchor: string;
   products: Product[];
   customers: Customer[];
   sales: Sale[]; // newest first
   movements: Movement[]; // newest first
+  staff: Staff[];
 }
 
 export interface DayAgg {
@@ -252,7 +264,12 @@ export function genDB(): DB {
   sales.sort((a, b) => b.ts - a.ts);
   movements.sort((a, b) => b.ts - a.ts);
 
-  return { anchor: new Date().toDateString(), products, customers, sales, movements };
+  const staff: Staff[] = [
+    { id: "st-jun", name: "Junjun", phone: "0917 555 2210", role: "helper", active: true, addedAt: Date.now() - 62 * 86400000 },
+    { id: "st-grace", name: "Ate Grace", phone: "0928 555 8841", role: "accountant", active: true, addedAt: Date.now() - 24 * 86400000 },
+  ];
+
+  return { anchor: new Date().toDateString(), products, customers, sales, movements, staff };
 }
 
 /* ---------------- selectors ---------------- */

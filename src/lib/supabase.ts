@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Customer, DB, Movement, Product, Sale } from "./data";
+import type { Customer, DB, Movement, Product, Sale, Staff } from "./data";
 
 /** True once real Supabase credentials are provided at build time (Vercel env vars). */
 export const isCloudConfigured = (): boolean =>
@@ -106,7 +106,15 @@ export async function pullStore(
   if (m.error) throw new Error(m.error.message);
   if (cfg.error) throw new Error(cfg.error.message);
 
-  if (!p.data || p.data.length === 0) return { bundle: null, settings: (cfg.data?.doc as Record<string, unknown>) ?? null };
+  /* Staff rides inside the settings doc (`__staff`) — no schema change,
+     still inside the single atomic push transaction. */
+  const doc = (cfg.data?.doc as Record<string, unknown> | null) ?? null;
+  const staffRemote: Staff[] = Array.isArray(doc?.__staff) ? (doc!.__staff as Staff[]) : [];
+  const settingsClean = doc
+    ? Object.fromEntries(Object.entries(doc).filter(([k]) => k !== "__staff"))
+    : null;
+
+  if (!p.data || p.data.length === 0) return { bundle: null, settings: settingsClean };
 
   const products: Product[] = (p.data ?? []).map((r) => ({
     id: r.id, name: r.name, cat: r.cat, price: Number(r.price), cost: Number(r.cost), stock: r.stock,
@@ -124,8 +132,8 @@ export async function pullStore(
     type: r.type, qty: Number(r.qty),
   }));
   return {
-    bundle: { products, customers, sales, movements },
-    settings: (cfg.data?.doc as Record<string, unknown>) ?? null,
+    bundle: { products, customers, sales, movements, staff: staffRemote },
+    settings: settingsClean,
   };
 }
 
@@ -147,7 +155,7 @@ export async function pushStore(
     p_customers: rows.customers,
     p_sales: rows.sales,
     p_movements: rows.movements,
-    p_settings: settings,
+    p_settings: { ...settings, __staff: db.staff ?? [] },
   });
   if (error) throw new Error(error.message);
 }

@@ -23,6 +23,7 @@ import {
   IconSignal,
   IconSms,
   IconUsers,
+  IconX,
   LogoMark,
 } from "./components/Icons";
 
@@ -36,7 +37,7 @@ const NAV: { key: Tab; label: string; icon: (c: string) => React.ReactNode }[] =
 ];
 
 function PhoneApp() {
-  const { db, settings, sync, recordSale, addStock, recordPayment, addUtang, notify } = useStore();
+  const { db, settings, sync, recordSale, addStock, recordPayment, addUtang, addCustomer, notify } = useStore();
   const [tab, setTab] = useState<Tab>("home");
   const [clock, setClock] = useState(Date.now());
   useEffect(() => {
@@ -54,6 +55,9 @@ function PhoneApp() {
   const [sukiQuery, setSukiQuery] = useState("");
   const [selCust, setSelCust] = useState<string | null>(null);
   const [payAmt, setPayAmt] = useState("");
+  const [addingSuki, setAddingSuki] = useState(false);
+  const [sukiName, setSukiName] = useState("");
+  const [sukiPhone, setSukiPhone] = useState("");
 
   const today0 = startOfDay(Date.now());
   const today = useMemo(() => {
@@ -317,6 +321,57 @@ function PhoneApp() {
               <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft" />
               <input value={sukiQuery} onChange={(e) => setSukiQuery(e.target.value)} placeholder="Sino'ng may utang?" className="field py-2.5 pl-9 text-sm" />
             </div>
+
+            {/* quick-add suki — one tap to open, type, save */}
+            {addingSuki ? (
+              <div className="rise rounded-xl border border-mango/50 bg-mango-soft/50 p-2.5">
+                <div className="flex gap-1.5">
+                  <input
+                    autoFocus
+                    value={sukiName}
+                    onChange={(e) => setSukiName(e.target.value)}
+                    placeholder="Pangalan…"
+                    className="field flex-1 px-2.5 py-2 text-xs"
+                  />
+                  <input
+                    value={sukiPhone}
+                    onChange={(e) => setSukiPhone(e.target.value)}
+                    placeholder="09…"
+                    className="field w-20 px-2.5 py-2 text-xs"
+                  />
+                </div>
+                <div className="mt-1.5 flex gap-1.5">
+                  <button
+                    onClick={() => {
+                      if (!sukiName.trim()) return;
+                      addCustomer(sukiName.trim(), sukiPhone.trim() || "—");
+                      setSukiName("");
+                      setSukiPhone("");
+                      setAddingSuki(false);
+                    }}
+                    disabled={!sukiName.trim()}
+                    className="btn-press flex-1 rounded-lg bg-pine py-2 text-[11px] font-extrabold uppercase text-mango transition enabled:hover:bg-pine-deep disabled:opacity-50"
+                  >
+                    Save suki
+                  </button>
+                  <button
+                    onClick={() => setAddingSuki(false)}
+                    aria-label="Cancel"
+                    className="btn-press flex items-center rounded-lg border border-line bg-card px-3 text-ink-soft"
+                  >
+                    <IconX className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setAddingSuki(true)}
+                className="btn-press flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-pine/40 bg-pine-soft/40 py-2.5 text-[11px] font-extrabold uppercase tracking-wide text-pine transition hover:bg-pine-soft"
+              >
+                + Bagong suki
+              </button>
+            )}
+
             {sukis.map((c) => (
               <button key={c.id} onClick={() => { setSelCust(c.id); setPayAmt(""); }} className="btn-press flex w-full items-center gap-2.5 rounded-xl border border-line bg-card px-3 py-2.5 text-left transition hover:bg-pine-soft/60">
                 <div className="min-w-0 flex-1">
