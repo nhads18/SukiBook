@@ -20,12 +20,49 @@
   <body>
     <div id="root"></div>
     <script>
+      /* Zombie service-worker purge: earlier builds registered an SW that can
+         pin this page to a stale cached shell, hiding fresh rebuilds forever.
+         Force-unregister any SW and clear app caches so every build shows. */
+      try {
+        if ("serviceWorker" in navigator && navigator.serviceWorker.getRegistrations) {
+          navigator.serviceWorker.getRegistrations().then(function (regs) {
+            regs.forEach(function (r) {
+              r.unregister();
+            });
+          });
+        }
+        if ("caches" in window) {
+          caches.keys().then(function (keys) {
+            keys
+              .filter(function (k) {
+                return k.indexOf("sukibook") === 0;
+              })
+              .forEach(function (k) {
+                caches.delete(k);
+              });
+          });
+        }
+      } catch (e) {
+        /* non-fatal */
+      }
+    </script>
+    <script>
       /* Boot watchdog — if the app never mounts (blocked asset, module error,
          stale cache), show a readable recovery card instead of a white screen. */
       window.__bootError = null;
-      window.addEventListener("error", function (e) {
-        window.__bootError = (e && e.message) || "Failed to load a resource";
-      });
+      /* capture-phase: also catches failed module/resource loads (they don't bubble) */
+      window.addEventListener(
+        "error",
+        function (e) {
+          var t = e && e.target;
+          if (t && (t.src || t.href)) {
+            window.__bootError = "Failed to load: " + (t.src || t.href);
+          } else if (!window.__bootError) {
+            window.__bootError = (e && e.message) || "Unknown load error";
+          }
+        },
+        true,
+      );
       window.setTimeout(function () {
         var root = document.getElementById("root");
         if (!root || root.children.length > 0) return;
@@ -41,7 +78,7 @@
           '<button onclick="window.location.reload()" style="flex:1;border:0;border-radius:10px;background:#f6a81c;color:#0b271b;font-weight:800;padding:10px 0;cursor:pointer">Reload</button>' +
           '<button onclick="try{localStorage.removeItem(\'sukibook:v3\')}catch(e){} if(\'caches\' in window){caches.keys().then(function(k){k.forEach(function(n){caches.delete(n)})})} window.location.reload(true)" style="flex:1;border:1px solid #e0e2d2;border-radius:10px;background:#fcfcf7;color:#1b2a21;font-weight:700;padding:10px 0;cursor:pointer">Clear cache & reload</button>' +
           "</div></div></div>";
-      }, 4000);
+      }, 2500);
     </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
