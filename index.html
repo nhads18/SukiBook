@@ -1,97 +1,99 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>coder-app-name</title>
+    <meta name="description" content="SukiBook — the sari-sari store manager. Mobile for action, web for insight." />
+    <meta name="theme-color" content="#103524" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="SukiBook" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="icons/icon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Spline+Sans+Mono:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Alfa+Slab+One&display=swap"
       rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-    <style>
-      /* 内联样式确保主题色立即生效，避免闪烁 */
-      html,
-      body {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        height: 100%;
-      }
-      html.light,
-      html.light body {
-        background-color: #ffffff !important;
-        color: #000000;
-      }
-      html.dark,
-      html.dark body {
-        background-color: #1a1a1a !important;
-        color: #ffffff;
-      }
-    </style>
-    <script>
-      // 在 React 加载前立即设置主题，避免闪烁
-      (function () {
-        const isInIframe = window.self !== window.top;
-
-        function applyThemeToDOM(theme) {
-          document.documentElement.classList.remove("light", "dark");
-          document.documentElement.classList.add(theme);
-          document.documentElement.setAttribute("data-theme", theme);
-        }
-
-        if (isInIframe) {
-          // 监听父窗口主动推送的主题消息
-          window.addEventListener("message", function (event) {
-            if (event.data && typeof event.data.theme === "string") {
-              const theme = event.data.theme;
-              if (theme === "light" || theme === "dark") {
-                applyThemeToDOM(theme);
-              }
-            }
-          });
-        } else {
-          // 非 iframe 环境，使用默认 light 主题
-          applyThemeToDOM("light");
-        }
-      })();
-    </script>
-      <script>
-      (function () {
-        if (window.self === window.top) return;
-        var reported = {};
-        window.addEventListener("error", function (event) {
-          // 资源加载失败的 error 事件没有 message，此处仅上报 JS 运行时错误
-          if (!event || !event.message) return;
-          var key =
-            event.message + "|" + (event.filename || "") + "|" + (event.lineno || 0);
-          if (reported[key]) return; // 相同错误只上报一次，避免渲染循环刷屏
-          reported[key] = true;
-          try {
-            window.parent.postMessage(
-              {
-                type: "sandbox-runtime-error",
-                payload: {
-                  message: String(event.message).slice(0, 500),
-                  filename: event.filename || "",
-                  lineno: event.lineno || 0,
-                  colno: event.colno || 0,
-                  stack:
-                    event.error && event.error.stack
-                      ? String(event.error.stack).slice(0, 2000)
-                      : ""
-                }
-              },
-              "*"
-            );
-          } catch (e) {
-            /* 上报失败不影响页面运行 */
-          }
-        });
-      })();
-    </script>
+    <title>SukiBook — Sari-Sari Store Manager</title>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <script>
+      /* Zombie service-worker purge: an old SW can pin this page to a stale
+         cached shell and hide fresh builds. Force-unregister on every load. */
+      try {
+        if ("serviceWorker" in navigator && navigator.serviceWorker.getRegistrations) {
+          navigator.serviceWorker.getRegistrations().then(function (regs) {
+            regs.forEach(function (r) { r.unregister(); });
+          });
+        }
+        if ("caches" in window) {
+          caches.keys().then(function (keys) {
+            keys.filter(function (k) { return k.indexOf("sukibook") === 0; })
+              .forEach(function (k) { caches.delete(k); });
+          });
+        }
+      } catch (e) { /* non-fatal */ }
+    </script>
+    <script>
+      /* Boot watchdog + dual-path loader. The dev entry (/src/main.tsx) needs a
+         live transform; when the host serves this page without one, fall back
+         to the real production bundle via stable /app.js + /app.css shims. */
+      window.__bootError = null;
+      window.__appBooted = false;
+      window.addEventListener("error", function (e) {
+        var t = e && e.target;
+        if (t && (t.src || t.href)) window.__bootError = "Failed to load: " + (t.src || t.href);
+        else if (!window.__bootError) window.__bootError = (e && e.message) || "Unknown load error";
+      }, true);
+      function sukibookShowCard() {
+        var root = document.getElementById("root");
+        if (!root) return;
+        root.innerHTML =
+          '<div style="min-height:100vh;display:grid;place-items:center;background:#f1f2ea;font-family:Instrument Sans,sans-serif;padding:24px">' +
+          '<div style="max-width:440px;background:#fcfcf7;border:1px solid #e0e2d2;border-radius:14px;padding:28px;box-shadow:0 20px 50px -20px rgba(11,39,27,.35)">' +
+          '<p style="margin:0;font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#d98a0b">SukiBook · load check</p>' +
+          '<h1 style="margin:8px 0 10px;font-family:Bricolage Grotesque,sans-serif;font-size:24px;color:#1b2a21">The app did not boot</h1>' +
+          '<p style="margin:0;font-size:13px;line-height:1.6;color:#4c5c51">Almost always a stale preview cache. The buttons below recover in one tap' +
+          (window.__bootError ? '.</p><pre style="margin:14px 0 0;padding:12px;border-radius:10px;background:#0b271b;color:#f6a81c;font-size:11px;white-space:pre-wrap">' +
+          String(window.__bootError).replace(/</g, "&lt;") + "</pre>" : ".</p>") +
+          '<div style="display:flex;gap:10px;margin-top:18px">' +
+          '<button onclick="window.location.reload()" style="flex:1;border:0;border-radius:10px;background:#f6a81c;color:#0b271b;font-weight:800;padding:10px 0;cursor:pointer">Reload</button>' +
+          '<button onclick="try{localStorage.removeItem(\'sukibook:v3\')}catch(e){} if(\'caches\' in window){caches.keys().then(function(k){k.forEach(function(n){caches.delete(n)})})} window.location.reload(true)" style="flex:1;border:1px solid #e0e2d2;border-radius:10px;background:#fcfcf7;color:#1b2a21;font-weight:700;padding:10px 0;cursor:pointer">Clear cache & reload</button>' +
+          "</div></div></div>";
+      }
+      window.setTimeout(function () {
+        if (window.__appBooted) return;
+        var root = document.getElementById("root");
+        if (!root || root.children.length > 0) return;
+        var css = document.createElement("link");
+        css.rel = "stylesheet";
+        css.href = "app.css";
+        css.onerror = function () {
+          var c2 = document.createElement("link");
+          c2.rel = "stylesheet"; c2.href = "public/app.css";
+          document.head.appendChild(c2);
+        };
+        document.head.appendChild(css);
+        var js = document.createElement("script");
+        js.type = "module";
+        js.src = "app.js";
+        js.onerror = function () {
+          var j2 = document.createElement("script");
+          j2.type = "module"; j2.src = "public/app.js";
+          document.head.appendChild(j2);
+        };
+        document.head.appendChild(js);
+        window.setTimeout(function () {
+          if (window.__appBooted) return;
+          var r = document.getElementById("root");
+          if (r && r.children.length === 0) sukibookShowCard();
+        }, 6000);
+      }, 2500);
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

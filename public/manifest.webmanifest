@@ -1,0 +1,15 @@
+{
+  "name": "SukiBook — Sari-Sari Store Manager",
+  "short_name": "SukiBook",
+  "description": "Mobile for action, web for insight. Sales, stock, utang and reports for sari-sari stores — offline-first.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f1f2ea",
+  "theme_color": "#103524",
+  "lang": "en",
+  "icons": [
+    { "src": "./icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "./icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
