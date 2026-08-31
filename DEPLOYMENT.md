@@ -135,11 +135,52 @@ instant rollback from the Vercel dashboard if anything goes wrong.
 - **PWA:** the dashboard is installable (manifest + SVG app icon) and a small
   service worker caches the app shell, so previously-loaded reports stay
   readable with no signal — the web half of the spec's offline requirement
-  (§9) without any extra infra.
+  (§9) without any extra infra. The worker caches same-origin assets **only**
+  — no store data ever lands in the SW cache.
 
 ---
 
-## 6 · Go-live checklist & targets
+## 6 · Security audit & hardening (done, in code)
+
+A full pass over client, schema and transport. What was found and fixed:
+
+| # | Finding | Fix |
+| --- | --- | --- |
+| 1 | **Push race / data loss** — the client pushed 4 deletes + 4 inserts as separate requests; two devices syncing at once could interleave and drop rows | `sb_push_store()` RPC: one Postgres transaction; `store_id` stamped server-side from the JWT, so the client never sends ownership at all |
+| 2 | **CSV formula injection** — product/customer names are user input and exports open in Excel/WPS, which execute cells starting `= + - @` | Every exported cell starting with a formula prefix is neutralized with a `'` prefix |
+| 3 | **No security headers** | `vercel.json` ships CSP, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy` (Vercel adds HSTS automatically) |
+| 4 | **Schema abuse vectors** — unbounded strings, no storage UPDATE policy | Length caps on every text column, price/qty/balance ranges, `payment`/`type` enums, owner-only photo folder policies incl. replace |
+| 5 | **Bundle exposure** | Supabase SDK is code-split — downloaded only in live cloud mode, never in demo builds |
+
+Clean by inspection: no `dangerouslySetInnerHTML` / `innerHTML` / `eval`
+anywhere (React escapes all rendering); no `service_role` key in the frontend;
+magic-link `emailRedirectTo` is validated by Supabase against your redirect
+allow-list.
+
+### Owner checklist in the Supabase dashboard
+
+1. **Authentication → URL Configuration:** Site URL = your Vercel domain and
+   the Redirect URLs list contains *only* that domain (blocks open-redirect
+   abuse of magic links).
+2. **Providers:** Email only — leave social providers OFF.
+3. The **anon key** is the only key in the frontend. `service_role` never
+   leaves the dashboard / Edge Functions.
+4. **RLS spot-check:** create a second account and confirm it cannot read
+   your tables (`select * from sb_sales` returns 0 rows).
+5. **Backups:** nightly `pg_dump` export (Free) or PITR (Pro) — and run one
+   restore drill before launch.
+
+### Accepted notes (documented, not bugs)
+
+- Demo mode keeps data in browser `localStorage` — Settings shows a live
+  advisory with the exact count of phone numbers on device.
+- Supabase stores the session token in `localStorage` (standard for SPA
+  auth); `httpOnly` cookies would require a custom backend — revisit with
+  the Phase-2 API if you add accountant/helper web roles.
+
+---
+
+## 7 · Go-live checklist & targets
 
 1. Sign up with a real email, record 5 sales, refresh the page, open another
    browser — data is there. ✅ That's the whole acceptance test.
@@ -152,7 +193,7 @@ instant rollback from the Vercel dashboard if anything goes wrong.
 
 ---
 
-## 7 · Phase-2 add-ons (after launch, not before)
+## 8 · Phase-2 add-ons (after launch, not before)
 
 The Express/Railway API from the original architecture becomes relevant when
 you need server-side secrets:
@@ -166,7 +207,7 @@ you need server-side secrets:
 
 ---
 
-## 8 · Monthly cost
+## 9 · Monthly cost
 
 | Item | Cost |
 | --- | --- |
@@ -181,7 +222,7 @@ to Supabase Pro when you pass ~500 MB of sales history.
 
 ---
 
-## 9 · Mobile app stores
+## 10 · Mobile app stores
 
 **Deferred until after web launch.** When ready, wrap the React codebase with
 React Native + Expo EAS (one codebase → Play `.aab` + App Store `.ipa`); see
@@ -189,7 +230,7 @@ the product roadmap. Web + PWA covers the field until then.
 
 ---
 
-## 10 · Quick command reference
+## 11 · Quick command reference
 
 ```bash
 npm run dev        # local development

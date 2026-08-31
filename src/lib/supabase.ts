@@ -230,7 +230,12 @@ export async function pullStore(storeId: string): Promise<{ bundle: StoreBundle 
   };
 }
 
-/** Replace-all push per collection — correct & simple at sari-sari scale. */
+/**
+ * Atomic push via the `sb_push_store` RPC — ONE Postgres transaction.
+ * The server stamps store_id from the JWT (auth.uid()); the client
+ * payload carries no store ownership at all, so a tampered client
+ * cannot target another store. Concurrent pushes can't interleave.
+ */
 export async function pushStore(
   storeId: string,
   db: DB,
@@ -239,29 +244,14 @@ export async function pushStore(
   const supa = await getClient();
   if (!supa) throw new Error("Supabase is not configured");
   const rows = toRows(storeId, db);
-
-  // delete current remote rows for this store…
-  const dels = await Promise.all([
-    supa.from("sb_products").delete().eq("store_id", storeId),
-    supa.from("sb_customers").delete().eq("store_id", storeId),
-    supa.from("sb_sales").delete().eq("store_id", storeId),
-    supa.from("sb_movements").delete().eq("store_id", storeId),
-  ]);
-  for (const d of dels) if (d.error) throw new Error(d.error.message);
-
-  // …then insert the fresh set + settings (upsert single row).
-  const inserts = await Promise.all([
-    rows.products.length ? supa.from("sb_products").insert(rows.products) : Promise.resolve({ error: null }),
-    rows.customers.length ? supa.from("sb_customers").insert(rows.customers) : Promise.resolve({ error: null }),
-    rows.sales.length ? supa.from("sb_sales").insert(rows.sales) : Promise.resolve({ error: null }),
-    rows.movements.length ? supa.from("sb_movements").insert(rows.movements) : Promise.resolve({ error: null }),
-    supa.from("sb_settings").upsert({
-      store_id: storeId,
-      settings,
-      updated_at: iso(Date.now()),
-    }),
-  ]);
-  for (const i of inserts) if (i.error) throw new Error(i.error.message);
+  const { error } = await supa.rpc("sb_push_store", {
+    p_products: rows.products,
+    p_customers: rows.customers,
+    p_sales: rows.sales,
+    p_movements: rows.movements,
+    p_settings: settings,
+  });
+  if (error) throw new Error(error.message);
 }
 
 /** Fresh local anchor used when hydrating from the cloud. */

@@ -340,6 +340,13 @@ export function LogoMark({ className = "w-9 h-9" }: P) {
   );
 }
 
+export const IconShield = (p: P) => (
+  <S {...p}>
+    <path d="M12 3.5 5 6.2v5.3c0 4.4 2.9 7.4 7 9 4.1-1.6 7-4.6 7-9V6.2z" />
+    <path d="m9 11.8 2.2 2.2 4-4.5" />
+  </S>
+);
+
 export const IconRocket = (p: P) => (
   <S {...p}>
     <path d="M12 3c3 2.2 4.5 5.2 4.5 9.2L12 15.5 7.5 12.2C7.5 8.2 9 5.2 12 3z" />
