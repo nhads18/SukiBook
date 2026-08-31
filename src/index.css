@@ -229,6 +229,54 @@ body {
   animation: pop 0.35s cubic-bezier(0.2, 0.7, 0.3, 1.2) both;
 }
 
+@keyframes slide-up {
+  from {
+    transform: translateY(26px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.slide-up {
+  animation: slide-up 0.38s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(0) rotate(var(--rot, 0deg));
+  }
+  50% {
+    transform: translateY(-16px) rotate(var(--rot, 0deg));
+  }
+}
+.float-y {
+  animation: float-y 7s ease-in-out infinite;
+}
+
+@keyframes spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.spin-slow {
+  animation: spin-slow 90s linear infinite;
+}
+
+/* diagonal light sheen across the phone screen */
+.screen-sheen {
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.05) 45%,
+    rgba(255, 255, 255, 0.09) 50%,
+    rgba(255, 255, 255, 0.05) 55%,
+    transparent 70%
+  );
+}
+
 .btn-press:active {
   transform: scale(0.96);
 }
@@ -298,7 +346,10 @@ body {
   .ticker-fade,
   .bar-grow,
   .width-grow,
-  .pop {
+  .pop,
+  .slide-up,
+  .float-y,
+  .spin-slow {
     animation: none;
   }
 }
