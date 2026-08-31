@@ -2,13 +2,13 @@
    Navigations: network-first, fall back to cached index (reports stay readable offline).
    Same-origin assets: cache-first with background refresh (hashed assets are immutable). */
 
-const CACHE = "sukibook-v1";
+const CACHE = "sukibook-v2";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE)
-      .then((c) => c.addAll(["/"]))
+      .then((c) => c.addAll(["./"]))
       .then(() => self.skipWaiting()),
   );
 });
@@ -34,10 +34,15 @@ self.addEventListener("fetch", (event) => {
       fetch(req)
         .then((res) => {
           const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put("/", copy));
+          caches.open(CACHE).then((c) => c.put("./", copy));
           return res;
         })
-        .catch(() => caches.match("/").then((m) => m || Response.error())),
+        .catch(() =>
+          caches
+            .match("./")
+            .then((m) => m || caches.match("/"))
+            .then((m) => m || Response.error()),
+        ),
     );
     return;
   }
