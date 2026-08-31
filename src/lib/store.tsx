@@ -173,9 +173,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   /* Apply the active theme: re-skins every token + browser chrome color. */
   useEffect(() => {
-    document.documentElement.dataset.theme = settings.theme;
+    const theme = THEMES.some((t) => t.key === settings.theme) ? settings.theme : "awning";
+    document.documentElement.dataset.theme = theme;
     const meta = document.querySelector('meta[name="theme-color"]');
-    const found = THEMES.find((t) => t.key === settings.theme);
+    const found = THEMES.find((t) => t.key === theme);
     if (meta && found) meta.setAttribute("content", found.meta);
   }, [settings.theme]);
 

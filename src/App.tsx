@@ -103,7 +103,7 @@ function ThemeMenu({ value, onChange }: { value: ThemeKey; onChange: (t: ThemeKe
           open ? "border-pine bg-pine text-mango" : "border-line bg-card text-ink-soft hover:border-pine hover:text-pine"
         }`}
       >
-        <IconPalette className="h-4.5 w-4.5" />
+        <IconPalette className="h-[18px] w-[18px]" />
       </button>
       {open && (
         <div className="pop absolute right-0 top-full z-50 mt-2 w-64 rounded-xl border border-line bg-card p-2 shadow-[0_18px_44px_-12px_rgba(11,39,27,0.35)]">
