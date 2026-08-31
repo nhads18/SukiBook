@@ -1,14 +1,15 @@
-/* SukiBook service worker — offline-first shell for the web dashboard.
-   Navigations: network-first, fall back to cached index (reports stay readable offline).
-   Same-origin assets: cache-first with background refresh (hashed assets are immutable). */
+/* SukiBook service worker — offline-first shell (spec §9).
+   Registration is currently disabled in src/main.tsx for preview stability;
+   re-enable there for production PWA support. */
 
 const CACHE = "sukibook-v2";
+const SHELL = "./";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE)
-      .then((c) => c.addAll(["./"]))
+      .then((c) => c.addAll([SHELL]))
       .then(() => self.skipWaiting()),
   );
 });
@@ -26,28 +27,21 @@ self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
-  if (url.origin !== self.location.origin && !url.hostname.endsWith("gstatic.com") && !url.hostname.endsWith("googleapis.com")) return;
+  if (url.origin !== self.location.origin) return;
 
-  // Navigations: fresh copy when online, cached app shell when offline.
   if (req.mode === "navigate") {
     event.respondWith(
       fetch(req)
         .then((res) => {
           const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put("./", copy));
+          caches.open(CACHE).then((c) => c.put(SHELL, copy));
           return res;
         })
-        .catch(() =>
-          caches
-            .match("./")
-            .then((m) => m || caches.match("/"))
-            .then((m) => m || Response.error()),
-        ),
+        .catch(() => caches.match(SHELL).then((m) => m || Response.error())),
     );
     return;
   }
 
-  // Static assets: serve fast from cache, refresh quietly.
   event.respondWith(
     caches.match(req).then((cached) => {
       const refresh = fetch(req)

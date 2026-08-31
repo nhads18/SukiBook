@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState, type ComponentType } from "react";
 import { StoreProvider, useStore, THEMES, type ThemeKey } from "./lib/store";
 import { lowStock, overdueDays } from "./lib/data";
-import type { StrKey } from "./lib/i18n";
-import type { Lang } from "./lib/i18n";
+import type { StrKey, Lang } from "./lib/i18n";
 import { Seg, SyncPill, ToastHost } from "./components/ui";
 import {
   IconBasket,
@@ -58,7 +57,7 @@ const VIEWS: Record<View, ComponentType> = {
   settings: SettingsView,
 };
 
-/** Role chips — access control per spec §10. Deploy is owner-only. */
+/** Role chips — access control per spec §10. Deploy & Go Live are owner-only. */
 const ROLE_META: Record<string, { label: string; tint: string }> = {
   owner: { label: "Owner", tint: "bg-mango text-pine-deep" },
   helper: { label: "Helper", tint: "bg-leaf-soft text-leaf" },
@@ -95,8 +94,6 @@ function ThemeMenu({ value, onChange }: { value: ThemeKey; onChange: (t: ThemeKe
     window.addEventListener("mousedown", onDown);
     return () => window.removeEventListener("mousedown", onDown);
   }, [open]);
-
-  const active = THEMES.find((t) => t.key === value);
 
   return (
     <div className="relative" ref={ref}>
@@ -150,25 +147,27 @@ function Shell() {
   const [view, setView] = useState<View>("dashboard");
   const [device, setDevice] = useState<"web" | "mobile">("web");
 
-  /* ---- role-based access (spec §10) — Deploy & Go Live are owner/admin only ---- */
+  /* ---- role-based access (spec §10) — Deploy & Go Live are owner-only ---- */
   const isAdmin = settings.role === "owner";
   const visibleNav = NAV.filter((n) => (n.key !== "deploy" && n.key !== "golive") || isAdmin);
   useEffect(() => {
     if ((view === "deploy" || view === "golive") && !isAdmin) setView("dashboard");
   }, [view, isAdmin]);
 
-  /* cross-view navigation (e.g. Settings "Go live →" button) */
+  /* cross-view navigation from inside views */
   useEffect(() => {
     const onNav = (e: Event) => {
-      const target = (e as CustomEvent<string>).detail as View;
-      setDevice("web");
-      setView(target);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      const detail = (e as CustomEvent).detail as View;
+      if (detail) {
+        setDevice("web");
+        setView(detail);
+      }
     };
     window.addEventListener("sukibook-nav", onNav);
     return () => window.removeEventListener("sukibook-nav", onNav);
   }, []);
 
+  /* "/" focuses product search */
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "/") return;
@@ -187,177 +186,148 @@ function Shell() {
   const overdueCount = db.customers.filter((c) => overdueDays(c) > 7).length;
   const badge = (key: View) =>
     key === "stock" && lowCount > 0 ? lowCount : key === "utang" && overdueCount > 0 ? overdueCount : null;
-  const badgeTint = (key: View) => (key === "stock" ? "bg-cherry" : "bg-mango text-pine-deep");
+  const badgeTint = (key: View) => (key === "stock" ? "bg-cherry text-cherry-soft" : "bg-mango text-pine-deep");
+
+  if (device === "mobile") return <MobileScene onSwitch={() => setDevice("web")} />;
 
   const Current = VIEWS[view];
 
-  if (device === "mobile") {
-    return (
-      <div className="noise">
-        <MobileScene onSwitch={() => setDevice("web")} />
-        <ToastHost toasts={toasts} />
-      </div>
-    );
-  }
-
   return (
-    <div className="noise min-h-screen">
-      {/* ambient wash behind the whole app */}
-      <div
-        className="pointer-events-none fixed inset-0"
-        style={{
-          background:
-            "radial-gradient(900px 480px at 92% -5%, rgba(246,168,28,0.10), transparent 62%), radial-gradient(760px 520px at -8% 105%, rgba(47,143,91,0.10), transparent 60%)",
-        }}
-      />
-      <div className="stripes stripes-anim h-2.5" />
-      <div className="flex">
-        {/* sidebar */}
-        <aside className="no-print sticky top-0 hidden h-screen w-16 shrink-0 flex-col border-r border-pine-deep bg-pine text-card md:flex lg:w-60">
-          <div className="flex items-center gap-2.5 px-3 py-5 lg:px-5">
-            <LogoMark className="h-9 w-9 shrink-0" />
-            <div className="hidden lg:block">
-              <p className="font-display text-lg font-extrabold leading-none">SukiBook</p>
-              <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-mango/80">sari-sari OS</p>
+    <div className="noise flex min-h-screen">
+      {/* ---------------- sidebar ---------------- */}
+      <aside className="fixed inset-y-0 left-0 z-40 flex w-[68px] flex-col border-r border-pine-deep/40 bg-pine text-card md:w-60">
+        <div className="flex items-center gap-2.5 px-3.5 py-4 md:px-5">
+          <LogoMark className="h-9 w-9 shrink-0" />
+          <div className="hidden min-w-0 md:block">
+            <p className="font-display text-base font-extrabold leading-none">SukiBook</p>
+            <p className="mt-0.5 truncate text-[10px] text-card/50">{settings.storeName}</p>
+          </div>
+        </div>
+        <div className="stripes-soft mx-3 h-1 rounded-full md:mx-5" />
+        <nav className="mt-2 flex-1 space-y-1 px-2 lg:px-3">
+          {visibleNav.map((n) => {
+            const active = view === n.key;
+            const b = badge(n.key);
+            return (
+              <button
+                key={n.key}
+                onClick={() => setView(n.key)}
+                title={t(n.label)}
+                className={`btn-press relative flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-semibold transition md:px-3 ${
+                  active ? "bg-card/10 text-mango" : "text-card/65 hover:bg-card/5 hover:text-card"
+                }`}
+              >
+                {active && <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-mango" />}
+                <n.icon className="h-5 w-5 shrink-0" />
+                <span className="hidden flex-1 text-left md:block">{t(n.label)}</span>
+                {b !== null && (
+                  <span className={`tnum hidden rounded-full px-1.5 py-0.5 font-mono text-[10px] font-extrabold md:block ${badgeTint(n.key)}`}>{b}</span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+        <div className="border-t border-card/10 p-3 md:p-4">
+          <div className="hidden items-center gap-2.5 md:flex">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-mango font-display text-xs font-extrabold text-pine-deep">
+              {settings.owner.split(" ").map((w) => w[0]).slice(0, 2).join("")}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-xs font-bold">{settings.owner}</p>
+              <p className="text-[10px] text-card/50">{ROLE_META[settings.role]?.label ?? settings.role}</p>
             </div>
           </div>
+        </div>
+      </aside>
 
-          <nav className="mt-2 flex-1 space-y-1 px-2 lg:px-3">
-            {visibleNav.map((n) => {
-              const active = view === n.key;
-              const b = badge(n.key);
-              return (
-                <button
-                  key={n.key}
-                  onClick={() => setView(n.key)}
-                  className={`btn-press group relative flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
-                    active ? "bg-pine-deep text-mango" : "text-card/70 hover:bg-pine-deep/60 hover:text-card"
-                  }`}
-                >
-                  {active && <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r bg-mango" />}
-                  <n.icon className="h-5 w-5 shrink-0" />
-                  <span className="hidden flex-1 text-left lg:block">{t(n.label)}</span>
-                  {b !== null && (
-                    <span className={`tnum hidden rounded-full px-1.5 py-0.5 font-mono text-[10px] font-extrabold text-card lg:block ${badgeTint(n.key)}`}>
-                      {b}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-
-          <div className="border-t border-card/10 p-3 lg:p-4">
-            <div className="hidden rounded-lg bg-pine-deep/70 px-3.5 py-3 lg:block">
-              <p className="truncate font-display text-sm font-bold">{settings.storeName}</p>
-              <p className="mt-0.5 flex items-center gap-1.5 text-[11px] text-card/60">
-                <span className={`h-1.5 w-1.5 rounded-full ${sync.status === "syncing" ? "pulse-dot bg-mango" : "bg-leaf"}`} />
-                {sync.status === "syncing" ? t("syncing") : "PostgreSQL · synced"}
-              </p>
+      {/* ---------------- main column ---------------- */}
+      <div className="flex min-h-screen flex-1 flex-col pl-[68px] md:pl-60">
+        {/* topbar */}
+        <header className="sticky top-0 z-30 border-b border-line bg-paper/85 backdrop-blur">
+          <div className="mx-auto flex max-w-[1440px] items-center gap-3 px-4 py-3 md:px-6">
+            <div className="min-w-0 flex-1">
+              <h1 className="truncate font-display text-lg font-extrabold leading-tight md:text-xl">{t(`nav.${view}` as StrKey)}</h1>
+              <p className="hidden truncate text-xs text-ink-soft sm:block">{t(`sub.${view}` as StrKey)}</p>
             </div>
-            <p className="mt-3 text-center font-mono text-[10px] text-card/40">MVP v1.0 · mobile for action</p>
-          </div>
-        </aside>
-
-        {/* main column */}
-        <div className="min-w-0 flex-1">
-          <header className="no-print sticky top-0 z-40 border-b border-line bg-paper/95 backdrop-blur-sm">
-            <div className="mx-auto flex max-w-[1440px] items-center gap-3 px-4 py-3.5 md:px-6">
-              <LogoMark className="h-8 w-8 md:hidden" />
-              <div className="min-w-0">
-                <h1 className="truncate font-display text-xl font-extrabold leading-tight md:text-2xl">{t(`nav.${view}` as StrKey)}</h1>
-                <p className="hidden truncate text-[11px] text-ink-soft sm:block">{t(`sub.${view}` as StrKey)}</p>
-              </div>
-              <div className="ml-auto flex items-center gap-2.5">
-                <div className="hidden xl:block">
-                  <SyncPill status={sync.status} last={sync.last} syncedLabel={t("synced")} syncingLabel={t("syncing")} />
-                </div>
-                <ThemeMenu value={settings.theme} onChange={(theme) => updateSettings({ theme })} />
-                <Seg<Lang>
-                  size="sm"
-                  value={settings.lang}
-                  onChange={(v) => updateSettings({ lang: v })}
-                  options={[
-                    { key: "en", label: "EN" },
-                    { key: "tl", label: "TL" },
-                  ]}
-                />
-                <div className="hidden sm:block">
-                  <Seg<"web" | "mobile">
-                    size="sm"
-                    value={device}
-                    onChange={setDevice}
-                    options={[
-                      { key: "web", label: <IconMonitor className="h-4 w-4" /> },
-                      { key: "mobile", label: <IconPhone className="h-4 w-4" /> },
-                    ]}
-                  />
-                </div>
-                <span
-                  className={`hidden items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider transition sm:flex ${ROLE_META[settings.role]?.tint ?? "bg-paper text-ink-soft"}`}
-                  title="Role controls access — change it in Settings → Team & roles"
-                >
-                  <IconShield className="h-3.5 w-3.5" />
-                  {ROLE_META[settings.role]?.label ?? settings.role}
-                </span>
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-mango font-display text-sm font-extrabold text-pine-deep shadow-sm" title={settings.owner}>
-                  {settings.owner.replace("Aling ", "").replace("Mang ", "")[0] ?? "N"}
-                </span>
-              </div>
-            </div>
-            {/* mobile web nav */}
-            <nav className="flex gap-1 overflow-x-auto border-t border-line px-3 py-2 md:hidden">
-              {visibleNav.map((n) => (
-                <button
-                  key={n.key}
-                  onClick={() => setView(n.key)}
-                  className={`btn-press shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold transition ${
-                    view === n.key ? "bg-pine text-mango" : "bg-card text-ink-soft"
-                  }`}
-                >
-                  {t(n.label)}
-                </button>
-              ))}
-            </nav>
-          </header>
-
-          {/* small-screen device switch */}
-          <div className="no-print border-b border-line bg-card px-4 py-2 sm:hidden">
-            <Seg<"web" | "mobile">
-              value={device}
-              onChange={setDevice}
+            <ThemeMenu value={settings.theme} onChange={(theme) => updateSettings({ theme })} />
+            <Seg<Lang>
+              value={settings.lang}
+              onChange={(lang) => updateSettings({ lang })}
               options={[
-                { key: "web", label: "Web dashboard" },
-                { key: "mobile", label: "Mobile app" },
+                { key: "en", label: "EN" },
+                { key: "tl", label: "TL" },
               ]}
             />
-          </div>
-
-          <main className="relative mx-auto max-w-[1440px] px-4 py-5 md:px-6 md:py-7">
-            <div key={view} className="rise">
-              {view === "dashboard" ? (
-                <Dashboard go={(v) => setView(v as View)} />
-              ) : view === "deploy" && !isAdmin ? (
-                <LockedPanel
-                  title="Owner access only"
-                  note="Deployment, infra and cost settings are restricted to the store owner (admin). Helpers and accountants keep their day-to-day views."
-                />
-              ) : (
-                <Current />
-              )}
+            <div className="hidden rounded-lg border border-line bg-card p-0.5 sm:block" title="Device preview">
+              <div className="flex">
+                <button
+                  onClick={() => setDevice("web")}
+                  className={`btn-press rounded-md p-2 transition ${device === "web" ? "bg-pine text-mango" : "text-ink-soft hover:text-pine"}`}
+                  aria-label="Web dashboard"
+                >
+                  <IconMonitor className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setDevice("mobile")}
+                  className="btn-press rounded-md p-2 text-ink-soft transition hover:text-pine"
+                  aria-label="Mobile app preview"
+                >
+                  <IconPhone className="h-4 w-4" />
+                </button>
+              </div>
             </div>
-          </main>
+            <SyncPill status={sync.status} label={t("synced")} />
+            <span
+              className={`hidden items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider transition sm:flex ${ROLE_META[settings.role]?.tint ?? "bg-paper text-ink-soft"}`}
+              title="Role controls access — change it in Settings → Team & roles"
+            >
+              <IconShield className="h-3.5 w-3.5" />
+              {ROLE_META[settings.role]?.label ?? settings.role}
+            </span>
+          </div>
+          <div className="stripes h-1" />
+        </header>
 
-          <footer className="no-print mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-2 px-4 pb-8 pt-2 text-[11px] text-ink-soft md:px-6">
-            <p>
-              <span className="font-display font-extrabold text-pine">SukiBook</span> — palitan na ang notebook. Demo data, resets daily.
-            </p>
-            <p className="font-mono">
-              press <kbd className="rounded border border-line bg-card px-1.5 py-0.5 font-mono">/</kbd> to search products
-            </p>
-          </footer>
+        {/* mobile bottom nav */}
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-card/95 backdrop-blur md:hidden">
+          <nav className="flex gap-1 overflow-x-auto px-3 py-2">
+            {visibleNav.map((n) => (
+              <button
+                key={n.key}
+                onClick={() => setView(n.key)}
+                className={`btn-press flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-bold transition ${
+                  view === n.key ? "bg-pine text-mango" : "text-ink-soft"
+                }`}
+              >
+                <n.icon className="h-4 w-4" />
+                {t(n.label)}
+              </button>
+            ))}
+          </nav>
         </div>
+
+        <main className="relative mx-auto w-full max-w-[1440px] flex-1 px-4 py-5 pb-24 md:px-6 md:py-7 md:pb-7">
+          <div key={view} className="rise">
+            {view === "dashboard" ? (
+              <Dashboard go={(v) => setView(v as View)} />
+            ) : (view === "deploy" || view === "golive") && !isAdmin ? (
+              <LockedPanel
+                title="Owner access only"
+                note="Deployment, production and infra settings are restricted to the store owner (admin). Helpers and accountants keep their day-to-day views."
+              />
+            ) : (
+              <Current />
+            )}
+          </div>
+        </main>
+
+        <footer className="border-t border-line bg-card/60 py-3">
+          <p className="mx-auto max-w-[1440px] px-4 font-mono text-[10px] text-ink-soft md:px-6">
+            SukiBook · mobile for action, web for insight · Vercel + Supabase · offline-first
+          </p>
+        </footer>
       </div>
+
       <ToastHost toasts={toasts} />
     </div>
   );

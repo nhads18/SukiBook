@@ -3,7 +3,15 @@ import ReactDOM from "react-dom/client";
 import "./index.css";
 import App from "./App.tsx";
 
-/** Root error boundary — a runtime crash shows a readable card instead of a white screen. */
+// Dual-boot guard: if the fallback loader in index.html already mounted the
+// production bundle, skip rendering instead of fighting over the root.
+declare global {
+  interface Window {
+    __appBooted?: boolean;
+  }
+}
+
+/** Root error boundary — a runtime crash shows a readable card, never a white screen. */
 class Boundary extends React.Component<{ children: React.ReactNode }, { err: Error | null }> {
   state = { err: null as Error | null };
   static getDerivedStateFromError(err: Error) {
@@ -17,13 +25,13 @@ class Boundary extends React.Component<{ children: React.ReactNode }, { err: Err
             <p style={{ margin: 0, fontSize: 11, fontWeight: 800, letterSpacing: "0.18em", textTransform: "uppercase", color: "#d98a0b" }}>SukiBook · runtime error</p>
             <h1 style={{ margin: "8px 0 10px", fontFamily: "Bricolage Grotesque, sans-serif", fontSize: 24, color: "#1b2a21" }}>Something broke on load</h1>
             <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: "#4c5c51" }}>
-              The ledger hit a snag. This is usually a stale cache — try a hard refresh. If it persists, the detail below pinpoints it:
+              The ledger hit a snag. Try a hard refresh; if it persists, the detail below pinpoints it:
             </p>
             <pre style={{ margin: "14px 0 0", padding: 12, borderRadius: 10, background: "#0b271b", color: "#f6a81c", fontSize: 11, lineHeight: 1.6, overflowX: "auto", whiteSpace: "pre-wrap" }}>
               {String(this.state.err?.message ?? this.state.err)}
             </pre>
             <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
-              <button onClick={() => window.location.reload()} style={{ flex: 1, border: 0, borderRadius: 10, background: "#f6a81c", color: "#0b271b", fontWeight: 800, padding: "10px 0", cursor: "pointer", fontFamily: "inherit" }}>
+              <button onClick={() => window.location.reload()} style={{ flex: 1, border: 0, borderRadius: 10, background: "#f6a81c", color: "#0b271b", fontWeight: 800, padding: "10px 0", cursor: "pointer" }}>
                 Reload app
               </button>
               <button
@@ -35,7 +43,7 @@ class Boundary extends React.Component<{ children: React.ReactNode }, { err: Err
                   }
                   window.location.reload();
                 }}
-                style={{ flex: 1, border: "1px solid #e0e2d2", borderRadius: 10, background: "#fcfcf7", color: "#1b2a21", fontWeight: 700, padding: "10px 0", cursor: "pointer", fontFamily: "inherit" }}
+                style={{ flex: 1, border: "1px solid #e0e2d2", borderRadius: 10, background: "#fcfcf7", color: "#1b2a21", fontWeight: 700, padding: "10px 0", cursor: "pointer" }}
               >
                 Clear local data & reload
               </button>
@@ -48,15 +56,21 @@ class Boundary extends React.Component<{ children: React.ReactNode }, { err: Err
   }
 }
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <Boundary>
-    <App />
-  </Boundary>,
-);
+const rootEl = document.getElementById("root")!;
+if (window.__appBooted && rootEl.children.length > 0) {
+  // Already booted via the production-bundle fallback — don't double-render.
+} else {
+  window.__appBooted = true;
+  ReactDOM.createRoot(rootEl).render(
+    <Boundary>
+      <App />
+    </Boundary>,
+  );
+}
 
 // NOTE: service-worker registration is intentionally disabled in preview
 // builds — a previously-registered SW can pin the preview to a stale cached
-// shell and mask fresh rebuilds (see the purge script in index.html).
+// shell and mask fresh rebuilds (index.html also purges old SWs on load).
 // For production PWA offline support (spec §9), re-enable:
 //   if ("serviceWorker" in navigator && import.meta.env.PROD) {
 //     window.addEventListener("load", () =>

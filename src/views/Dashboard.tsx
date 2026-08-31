@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   catMeta,
   dailySeries,
-  fmtDay,
   fmtTime,
   lowStock,
   paymentMix,
@@ -18,23 +17,22 @@ import { CountUp, Delta, Reveal } from "../components/ui";
 import { CategoryGlyph, IconAlert, IconBasket, IconDown, IconPeso, IconUp } from "../components/Icons";
 
 const TIPS = [
-  "Restock Lucky Me! before Friday — it's your #1 seller two weeks running.",
-  "GCash is now ~20% of revenue. Keep the QR code visible sa counter!",
-  "Kuya Boy's utang is getting old — a friendly SMS reminder usually works.",
-  "Weekend evenings (5–7 PM) are your rush hour. Extra stock sa drinks!",
-  "Utang na nacobra is cash-in — record it under payments, hindi benta.",
+  "Tip: low-stock items show red under Inventory — restock before Friday rush.",
+  "Tip: utang over 7 days gets flagged overdue. One-tap SMS reminder in the Utang Book.",
+  "Tip: press / anywhere to jump to product search.",
+  "Tip: GCash sales are tracked separately — check the payment mix daily.",
+  "Tip: everything you record offline syncs automatically when signal returns.",
 ];
 
-function greeting(lang: "en" | "tl") {
+function greeting(lang: string) {
   const h = new Date().getHours();
-  const part = h < 12 ? 0 : h < 18 ? 1 : 2;
-  const en = ["Good morning", "Good afternoon", "Good evening"][part];
-  const tl = ["Magandang umaga", "Magandang hapon", "Magandang gabi"][part];
-  return lang === "tl" ? tl : en;
+  if (h < 12) return lang === "tl" ? "Magandang umaga" : "Good morning";
+  if (h < 18) return lang === "tl" ? "Magandang hapon" : "Good afternoon";
+  return lang === "tl" ? "Magandang gabi" : "Good evening";
 }
 
 export default function Dashboard({ go }: { go?: (v: string) => void }) {
-  const { db, t, settings, addStock } = useStore();
+  const { db, t, settings } = useStore();
   const [tipIdx, setTipIdx] = useState(0);
   const [clock, setClock] = useState(Date.now());
   const [tick, setTick] = useState(0);
@@ -43,12 +41,10 @@ export default function Dashboard({ go }: { go?: (v: string) => void }) {
     const id = window.setInterval(() => setClock(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, []);
-
   useEffect(() => {
     const id = window.setInterval(() => setTick((i) => i + 1), 3000);
     return () => window.clearInterval(id);
   }, []);
-
   useEffect(() => {
     const id = window.setInterval(() => setTipIdx((i) => (i + 1) % TIPS.length), 6000);
     return () => window.clearInterval(id);
@@ -65,17 +61,13 @@ export default function Dashboard({ go }: { go?: (v: string) => void }) {
         total: list.reduce((s, x) => s + x.total, 0),
         count: list.length,
         items: list.reduce((s, x) => s + x.items.reduce((a, i) => a + i.qty, 0), 0),
-        profit: list.reduce((s, x) => s + x.items.reduce((a, i) => a + (i.price - i.cost) * i.qty, 0), 0),
       };
     };
-    const today = sum(today0, now + 1);
-    const yest = sum(yest0, today0);
     const collected = db.customers.reduce(
       (s, c) => s + c.history.filter((h) => h.type === "payment" && h.ts >= today0).reduce((a, h) => a + h.amount, 0),
       0,
     );
-    const payers = db.customers.filter((c) => c.history.some((h) => h.type === "payment" && h.ts >= today0));
-    return { today, yest, collected, payers };
+    return { today: sum(today0, now + 1), yest: sum(yest0, today0), collected };
   }, [db, today0, yest0, now]);
 
   const series = useMemo(() => dailySeries(db, 14), [db]);
@@ -101,12 +93,10 @@ export default function Dashboard({ go }: { go?: (v: string) => void }) {
   );
 
   const feed = db.movements.slice(0, 9);
-
-  /* live store state */
   const hour = new Date(clock).getHours();
   const open = hour >= 5 && hour < 22;
   const dayPct = Math.min(100, Math.max(2, ((clock - (today0 + 5 * 3600000)) / (17 * 3600000)) * 100));
-  const recentSale = db.sales[tick % Math.max(db.sales.length, 1)];
+  const recentSale = db.sales.length > 0 ? db.sales[tick % db.sales.length] : null;
 
   return (
     <div className="space-y-6">
@@ -223,7 +213,7 @@ export default function Dashboard({ go }: { go?: (v: string) => void }) {
                 {peso0(series.reduce((s, x) => s + x.revenue, 0))}
               </span>
             </div>
-            <Bars data={series.map((s) => ({ label: fmtDay(s.ts), value: s.revenue, sub: `${s.count} sales` }))} />
+            <Bars data={series.map((s) => ({ label: new Date(s.ts).toLocaleDateString("en-PH", { month: "short", day: "numeric" }), value: s.revenue, sub: `${s.count} sales` }))} />
           </div>
         </Reveal>
         <Reveal delay={100} className="lg:col-span-4">
@@ -255,53 +245,47 @@ export default function Dashboard({ go }: { go?: (v: string) => void }) {
           </div>
         </Reveal>
         <Reveal delay={80}>
-          <div className="flex h-full flex-col rounded-xl border border-line bg-card p-5 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
+          <div className={`h-full rounded-xl border p-5 shadow-sm ${lows.length > 0 ? "border-cherry/30 bg-cherry-soft/40" : "border-line bg-card"}`}>
+            <div className="flex items-center justify-between">
               <h2 className="font-display text-lg font-bold">{t("lowStock")}</h2>
-              <span className="inline-flex items-center gap-1 rounded-full bg-cherry-soft px-2.5 py-1 text-[11px] font-bold text-cherry">
+              <span className={`tnum flex items-center gap-1.5 rounded-md px-2.5 py-1 font-mono text-xs font-bold ${lows.length > 0 ? "bg-cherry text-cherry-soft" : "bg-leaf-soft text-leaf"}`}>
                 <IconAlert className="h-3.5 w-3.5" /> {lows.length} items
               </span>
             </div>
-            {lows.length === 0 ? (
-              <p className="text-sm text-ink-soft">All stocked up — ayos!</p>
-            ) : (
-              <ul className="flex-1 space-y-2.5">
-                {lows.map((p) => (
-                  <li key={p.id} className="flex items-center gap-3 rounded-lg border border-cherry/20 bg-cherry-soft/50 px-3 py-2">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-md bg-card" style={{ color: catMeta(p.cat).color }}>
-                      <CategoryGlyph cat={p.cat} className="h-5 w-5" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold">{p.name}</p>
-                      <p className="font-mono text-[11px] font-bold text-cherry">{p.stock} left</p>
-                    </div>
-                    <button
-                      onClick={() => addStock(p.id, 24)}
-                      className="btn-press rounded-md bg-pine px-2.5 py-1.5 text-[11px] font-bold text-mango transition hover:bg-pine-deep"
-                    >
-                      +24
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <p className="mb-3 text-xs text-ink-soft">Below 5 units — restock before the rush</p>
+            <ul className="space-y-2">
+              {lows.slice(0, 5).map((p) => (
+                <li key={p.id} className="flex items-center gap-2.5 rounded-lg bg-card/80 px-3 py-2">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-paper" style={{ color: catMeta(p.cat).color }}>
+                    <CategoryGlyph cat={p.cat} className="h-4.5 w-4.5" />
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-sm font-semibold">{p.name}</span>
+                  <span className={`tnum font-mono text-xs font-bold ${p.stock === 0 ? "text-cherry" : "text-mango-deep"}`}>
+                    {p.stock === 0 ? "out" : `${p.stock} left`}
+                  </span>
+                </li>
+              ))}
+              {lows.length === 0 && (
+                <li className="rounded-lg bg-card px-3 py-4 text-center text-sm font-semibold text-leaf">All stocked up. Solid!</li>
+              )}
+            </ul>
           </div>
         </Reveal>
-        <Reveal delay={160}>
-          <div className="flex h-full flex-col rounded-xl border border-line bg-card p-5 shadow-sm">
+        <Reveal delay={160} className="md:col-span-2 lg:col-span-1">
+          <div className="h-full rounded-xl border border-line bg-card p-5 shadow-sm">
             <h2 className="font-display text-lg font-bold">{t("activity")}</h2>
-            <p className="mb-4 text-xs text-ink-soft">Live stock movements</p>
-            <ul className="flex-1 space-y-1">
+            <p className="mb-3 text-xs text-ink-soft">Stock in &amp; out, newest first</p>
+            <ul className="space-y-1">
               {feed.map((m) => (
-                <li key={m.id} className="flex items-center gap-2.5 rounded-md px-1.5 py-1.5 text-sm transition hover:bg-paper">
+                <li key={m.id} className="flex items-center gap-2 rounded-md px-1.5 py-1.5 text-sm transition hover:bg-paper">
                   <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${m.type === "restock" ? "bg-leaf-soft text-leaf" : "bg-cherry-soft text-cherry"}`}>
                     {m.type === "restock" ? <IconUp className="h-3.5 w-3.5" /> : <IconDown className="h-3.5 w-3.5" />}
                   </span>
-                  <span className="min-w-0 flex-1 truncate">
+                  <span className="min-w-0 flex-1 truncate text-xs">
                     <span className="tnum font-mono font-bold" style={{ color: m.type === "restock" ? "#2f8f5b" : "#c9463d" }}>
                       {m.qty > 0 ? "+" : ""}{m.qty}
                     </span>{" "}
-                    {m.name}
+                    <span className="font-semibold">{m.name}</span>
                   </span>
                   <span className="shrink-0 font-mono text-[10px] text-ink-soft">{timeAgo(m.ts)}</span>
                 </li>
@@ -311,20 +295,11 @@ export default function Dashboard({ go }: { go?: (v: string) => void }) {
         </Reveal>
       </div>
 
-      {/* tip ticker */}
-      <Reveal>
-        <div className="flex items-center gap-4 overflow-hidden rounded-xl border border-mango/40 bg-mango-soft px-5 py-4">
-          <span className="shrink-0 rounded-md bg-mango px-2.5 py-1 font-display text-xs font-extrabold uppercase tracking-wider text-pine-deep">
-            {settings.lang === "tl" ? "Alam mo ba?" : "Store tip"}
-          </span>
-          <p key={tipIdx} className="ticker-fade truncate text-sm font-semibold text-ink">
-            {TIPS[tipIdx]}
-          </p>
-          <span className="ml-auto hidden shrink-0 font-mono text-[10px] text-ink-soft sm:block">
-            {fmtTime(Date.now())} · auto-rotating
-          </span>
-        </div>
-      </Reveal>
+      {/* rotating tip */}
+      <div key={tipIdx} className="rise flex items-center gap-3 rounded-xl border border-dashed border-mango-deep/40 bg-mango-soft/50 px-5 py-3.5">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-mango font-display text-sm font-extrabold text-pine-deep">₱</span>
+        <p className="text-sm font-medium text-mango-deep">{TIPS[tipIdx]}</p>
+      </div>
     </div>
   );
 }

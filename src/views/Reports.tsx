@@ -94,9 +94,16 @@ export default function ReportsView() {
       ...db.customers.map((c) => [c.name, c.phone, c.balance]),
     ]);
 
+  const statCards: { label: string; value: string; extra?: React.ReactNode; locked?: boolean }[] = [
+    { label: "Revenue", value: peso0(totals.revenue), extra: <Delta pct={totals.delta} /> },
+    { label: "Profit", value: hideProfit ? "₱ ••••" : peso0(totals.profit), locked: hideProfit },
+    { label: "Margin", value: hideProfit ? "•••%" : `${totals.margin.toFixed(1)}%`, locked: hideProfit },
+    { label: "Transactions", value: totals.count.toLocaleString() },
+    { label: "Avg basket", value: peso0(totals.avg) },
+  ];
+
   return (
     <div className="space-y-5">
-      {/* print header */}
       <div className="hidden print:block">
         <h1 className="font-display text-2xl font-extrabold">{settings.storeName}</h1>
         <p className="text-sm text-ink-soft">Sales report · last {days} days · generated {fmtDay(Date.now())}</p>
@@ -128,17 +135,10 @@ export default function ReportsView() {
         </div>
       </Reveal>
 
-      {/* stat strip */}
       <Reveal delay={60}>
         <div className="flex flex-wrap gap-3">
-          {[
-            { label: "Revenue", value: peso0(totals.revenue), extra: <Delta pct={totals.delta} /> },
-            { label: "Profit", value: hideProfit ? "₱ ••••" : peso0(totals.profit), extra: null, locked: hideProfit },
-            { label: "Margin", value: hideProfit ? "•••%" : `${totals.margin.toFixed(1)}%`, extra: null, locked: hideProfit },
-            { label: "Transactions", value: totals.count.toLocaleString(), extra: null, locked: false },
-            { label: "Avg basket", value: peso0(totals.avg), extra: null, locked: false },
-          ].map((s, i) => (
-            <div key={i} className={`min-w-36 flex-1 rounded-xl border bg-card px-4 py-3.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${s.locked ? "border-line/70 opacity-80" : "border-line"}`}>
+          {statCards.map((s, i) => (
+            <div key={i} className="min-w-36 flex-1 rounded-xl border border-line bg-card px-4 py-3.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
               <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-ink-soft">
                 {s.label}
                 {s.locked && <IconShield className="h-3 w-3 text-mango-deep" />}
@@ -152,7 +152,6 @@ export default function ReportsView() {
         </div>
       </Reveal>
 
-      {/* trend */}
       <Reveal delay={100}>
         <div className="rounded-xl border border-line bg-card p-5 shadow-sm">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -212,7 +211,6 @@ export default function ReportsView() {
         </Reveal>
       </div>
 
-      {/* heatmap */}
       <Reveal>
         <div className="rounded-xl border border-line bg-card p-5 shadow-sm">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">

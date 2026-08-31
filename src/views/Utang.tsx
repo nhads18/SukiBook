@@ -1,311 +1,271 @@
 import { useMemo, useState } from "react";
-import {
-  collectedSince,
-  downloadCSV,
-  fmtDayFull,
-  fmtTime,
-  overdueDays,
-  peso,
-  peso0,
-} from "../lib/data";
+import { downloadCSV, fmtDay, fmtTime, overdueDays, peso0, type Customer } from "../lib/data";
 import { useStore } from "../lib/store";
-import { CountUp, Field, Modal, Reveal } from "../components/ui";
-import { IconCheck, IconClock, IconDownload, IconPlus, IconSearch, IconSend, IconSms, IconUsers, IconWallet } from "../components/Icons";
-
-const AVATAR_TINTS = ["#103524", "#c9463d", "#2e6fd0", "#d98a0b", "#2f8f5b", "#7a6bbf"];
+import { CountUp, Field, Modal, Reveal, Seg } from "../components/ui";
+import { IconCheck, IconClock, IconPlus, IconSearch, IconSms, IconUsers, IconX } from "../components/Icons";
 
 export default function UtangView() {
-  const { db, t, settings, recordPayment, addUtang, addCustomer, notify } = useStore();
+  const { db, t, recordPayment, addUtang, addCustomer, notify } = useStore();
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<"balance" | "overdue" | "name">("balance");
-  const [selectedId, setSelectedId] = useState(db.customers[0]?.id ?? "");
+  const [sort, setSort] = useState<"balance" | "overdue">("balance");
+  const [selId, setSelId] = useState<string | null>(null);
   const [payAmt, setPayAmt] = useState("");
-  const [utangAmt, setUtangAmt] = useState("");
-  const [utangNote, setUtangNote] = useState("");
-  const [smsOpen, setSmsOpen] = useState(false);
-  const [smsMsg, setSmsMsg] = useState("");
-  const [custOpen, setCustOpen] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newPhone, setNewPhone] = useState("");
-
-  const totalOutstanding = db.customers.reduce((s, c) => s + c.balance, 0);
-  const overdueCount = db.customers.filter((c) => overdueDays(c) > 7).length;
-  const weekCollected = useMemo(() => collectedSince(db, Date.now() - 7 * 86400000), [db]);
+  const [addModal, setAddModal] = useState(false);
+  const [newCust, setNewCust] = useState({ name: "", phone: "" });
 
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const arr = db.customers.filter((c) => !q || c.name.toLowerCase().includes(q) || c.phone.replace(/\s/g, "").includes(q.replace(/\s/g, "")));
-    arr.sort((a, b) => {
-      if (sort === "name") return a.name.localeCompare(b.name);
-      if (sort === "overdue") return overdueDays(b) - overdueDays(a);
-      return b.balance - a.balance;
-    });
-    return arr;
+    const filtered = db.customers.filter((c) => !q || c.name.toLowerCase().includes(q) || c.phone.includes(q));
+    return [...filtered].sort((a, b) =>
+      sort === "overdue" ? overdueDays(b) - overdueDays(a) || b.balance - a.balance : b.balance - a.balance,
+    );
   }, [db.customers, query, sort]);
 
-  const sel = db.customers.find((c) => c.id === selectedId) ?? list[0] ?? db.customers[0];
-
-  const doPay = (amt: number) => {
-    if (!sel || amt <= 0) return;
-    recordPayment(sel.id, amt);
-    setPayAmt("");
-  };
-
-  const openSms = () => {
-    if (!sel) return;
-    setSmsMsg(
-      `Hi ${sel.name}! Paalala lang po — may utang pa po kayo na ${peso(sel.balance)} sa ${settings.storeName}. Kung nabayaran niyo na po, paki-ignore na lang. Salamat po! — ${settings.owner}`,
-    );
-    setSmsOpen(true);
-  };
-
-  const timeline = sel ? [...sel.history].sort((a, b) => b.ts - a.ts) : [];
+  const sel = db.customers.find((c) => c.id === selId) ?? null;
+  const outstanding = db.customers.reduce((s, c) => s + c.balance, 0);
+  const overdueCount = db.customers.filter((c) => overdueDays(c) > 7).length;
 
   const exportCsv = () =>
     downloadCSV("sukibook-utang.csv", [
-      ["Customer", "Phone", "Balance", "Overdue (days)", "Last activity"],
-      ...db.customers.map((c) => [
-        c.name,
-        c.phone,
-        c.balance,
-        overdueDays(c),
-        c.history.length ? fmtDayFull(c.history[c.history.length - 1].ts) : "—",
-      ]),
+      ["Customer", "Phone", "Balance", "Days overdue"],
+      ...list.map((c) => [c.name, c.phone, c.balance, overdueDays(c)]),
     ]);
 
-  return (
-    <div className="space-y-5">
-      {/* header stats */}
-      <Reveal>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div className="rounded-xl border border-pine bg-pine p-5 text-card shadow-md">
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-mango">{t("outstanding")}</p>
-            <p className="mt-1 font-mono text-3xl font-bold text-mango">
-              <CountUp value={totalOutstanding} fmt={peso0} />
-            </p>
-            <p className="mt-1 flex items-center gap-1.5 text-xs text-card/70">
-              <IconUsers className="h-3.5 w-3.5" /> across {db.customers.filter((c) => c.balance > 0).length} suki
-            </p>
-          </div>
-          <div className="rounded-xl border border-line bg-card p-5 shadow-sm">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-ink-soft">{t("overdue")} (&gt;7 days)</p>
-            <p className={`mt-1 font-mono text-3xl font-bold ${overdueCount > 0 ? "text-cherry" : "text-leaf"}`}>{overdueCount}</p>
-            <p className="mt-1 flex items-center gap-1.5 text-xs text-ink-soft">
-              <IconClock className="h-3.5 w-3.5" /> sorted by days overdue below
-            </p>
-          </div>
-          <div className="rounded-xl border border-line bg-card p-5 shadow-sm">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-ink-soft">Collected · 7 days</p>
-            <p className="mt-1 font-mono text-3xl font-bold text-leaf">
-              <CountUp value={weekCollected} fmt={peso0} />
-            </p>
-            <p className="mt-1 flex items-center gap-1.5 text-xs text-ink-soft">
-              <IconWallet className="h-3.5 w-3.5" /> bayad na pasasalamat
-            </p>
-          </div>
-        </div>
-      </Reveal>
+  const sendSms = (c: Customer) =>
+    notify("ok", "SMS sent", `Paalala → ${c.phone} via Semaphore`);
 
-      <div className="grid gap-5 lg:grid-cols-12">
-        {/* customer list */}
-        <Reveal className="lg:col-span-5">
-          <div className="rounded-xl border border-line bg-card shadow-sm">
-            <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3.5">
-              <div className="relative min-w-40 flex-1">
-                <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft" />
-                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search suki or phone…" className="field pl-9 py-1.5 text-xs" />
-              </div>
-              <select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} className="field w-auto py-1.5 text-xs">
-                <option value="balance">By balance</option>
-                <option value="overdue">By overdue</option>
-                <option value="name">By name</option>
-              </select>
-              <button onClick={() => setCustOpen(true)} className="btn-press flex h-8 w-8 items-center justify-center rounded-md bg-pine text-mango transition hover:bg-pine-deep" aria-label="Add suki">
-                <IconPlus className="h-4 w-4" />
-              </button>
+  return (
+    <div className="grid gap-5 lg:grid-cols-12">
+      {/* list */}
+      <div className="lg:col-span-5">
+        <Reveal>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative min-w-48 flex-1">
+              <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft" />
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Hanapin ang suki…" className="field pl-9" />
             </div>
-            <ul className="max-h-[540px] divide-y divide-line overflow-y-auto">
-              {list.map((c, i) => {
-                const od = overdueDays(c);
-                const active = sel?.id === c.id;
-                return (
-                  <li key={c.id}>
-                    <button
-                      onClick={() => setSelectedId(c.id)}
-                      className={`flex w-full items-center gap-3 px-4 py-3 text-left transition ${active ? "bg-mango-soft/60" : "hover:bg-paper/70"}`}
-                    >
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-display text-sm font-extrabold text-card" style={{ background: AVATAR_TINTS[i % AVATAR_TINTS.length] }}>
-                        {c.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-bold">{c.name}</span>
-                        <span className="block font-mono text-[11px] text-ink-soft">{c.phone}</span>
-                      </span>
-                      <span className="text-right">
-                        <span className={`tnum block font-mono text-sm font-bold ${c.balance === 0 ? "text-leaf" : "text-ink"}`}>{peso0(c.balance)}</span>
-                        {c.balance > 0 && od > 7 ? (
-                          <span className="rounded bg-cherry px-1.5 py-0.5 text-[9px] font-extrabold uppercase text-cherry-soft">{od}d overdue</span>
-                        ) : c.balance === 0 ? (
-                          <span className="text-[10px] font-bold text-leaf">clean ✓</span>
-                        ) : (
-                          <span className="text-[10px] text-ink-soft">ok</span>
-                        )}
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-            <div className="flex items-center justify-between border-t border-line px-4 py-2.5">
-              <span className="text-[11px] text-ink-soft">{list.length} suki</span>
-              <button onClick={exportCsv} className="btn-press inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-bold text-ink-soft transition hover:bg-pine-soft hover:text-pine">
-                <IconDownload className="h-3.5 w-3.5" /> {t("exportCsv")}
-              </button>
-            </div>
+            <button
+              onClick={() => setAddModal(true)}
+              className="btn-press inline-flex items-center gap-2 rounded-lg bg-pine px-3.5 py-2 text-xs font-extrabold uppercase tracking-wide text-mango shadow-md transition hover:bg-pine-deep"
+            >
+              <IconPlus className="h-4 w-4" /> Suki
+            </button>
           </div>
         </Reveal>
 
-        {/* detail */}
-        <Reveal delay={90} className="lg:col-span-7">
-          {sel ? (
-            <div className="rounded-xl border border-line bg-card shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-4">
-                <div>
-                  <h2 className="font-display text-xl font-extrabold">{sel.name}</h2>
-                  <p className="font-mono text-xs text-ink-soft">{sel.phone} · {sel.history.length} entries</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">Balance</p>
-                  <p className={`tnum font-mono text-2xl font-bold ${sel.balance === 0 ? "text-leaf" : "text-cherry"}`}>
-                    <CountUp value={sel.balance} fmt={peso0} />
-                  </p>
-                </div>
-              </div>
+        <Reveal delay={60}>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <Seg<"balance" | "overdue">
+              value={sort}
+              onChange={setSort}
+              options={[
+                { key: "balance", label: "By balance" },
+                { key: "overdue", label: "By overdue" },
+              ]}
+            />
+            <span className="tnum font-mono text-xs text-ink-soft">
+              {t("outstanding")}: <span className="font-bold text-cherry">{peso0(outstanding)}</span>
+              {overdueCount > 0 && <span className="ml-2 rounded bg-cherry px-1.5 py-0.5 text-[10px] font-bold text-cherry-soft">{overdueCount} overdue</span>}
+            </span>
+          </div>
+        </Reveal>
 
-              {/* actions */}
-              <div className="grid gap-3 border-b border-line px-5 py-4 sm:grid-cols-2">
-                <div className="rounded-lg border border-leaf/30 bg-leaf-soft/50 p-3.5">
-                  <p className="mb-2 text-[11px] font-extrabold uppercase tracking-wider text-leaf">{t("recordPayment")}</p>
-                  <div className="mb-2 flex flex-wrap gap-1.5">
+        <Reveal delay={100}>
+          <ul className="mt-4 space-y-2">
+            {list.map((c) => {
+              const od = overdueDays(c);
+              return (
+                <li key={c.id}>
+                  <button
+                    onClick={() => setSelId(c.id)}
+                    className={`btn-press flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition hover:-translate-y-0.5 hover:shadow-md ${
+                      selId === c.id ? "border-pine bg-pine text-card" : od > 7 ? "border-cherry/40 bg-cherry-soft/40" : "border-line bg-card"
+                    }`}
+                  >
+                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-display text-xs font-extrabold ${selId === c.id ? "bg-mango text-pine-deep" : "bg-pine-soft text-pine"}`}>
+                      {c.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-bold">{c.name}</span>
+                      <span className={`block font-mono text-[11px] ${selId === c.id ? "text-card/60" : "text-ink-soft"}`}>{c.phone}</span>
+                    </span>
+                    <span className="text-right">
+                      <span className={`tnum block font-mono text-sm font-extrabold ${c.balance === 0 ? (selId === c.id ? "text-leaf-soft" : "text-leaf") : selId === c.id ? "text-mango" : "text-cherry"}`}>
+                        {peso0(c.balance)}
+                      </span>
+                      {od > 7 && (
+                        <span className={`flex items-center justify-end gap-1 font-mono text-[10px] font-bold ${selId === c.id ? "text-mango" : "text-cherry"}`}>
+                          <IconClock className="h-3 w-3" /> {od}d
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+            {list.length === 0 && (
+              <li className="rounded-xl border border-dashed border-line px-4 py-8 text-center text-sm text-ink-soft">
+                <IconUsers className="mx-auto mb-2 h-6 w-6 opacity-50" />
+                Walang nahanap na suki.
+              </li>
+            )}
+          </ul>
+        </Reveal>
+      </div>
+
+      {/* detail */}
+      <div className="lg:col-span-7">
+        {sel ? (
+          <div key={sel.id} className="rise rounded-xl border border-line bg-card shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-4">
+              <div>
+                <h2 className="font-display text-xl font-extrabold">{sel.name}</h2>
+                <p className="font-mono text-xs text-ink-soft">{sel.phone}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => sendSms(sel)}
+                  className="btn-press inline-flex items-center gap-2 rounded-lg bg-pine px-3.5 py-2 text-xs font-extrabold uppercase tracking-wide text-mango transition hover:bg-pine-deep"
+                >
+                  <IconSms className="h-4 w-4" /> {t("sendReminder")}
+                </button>
+                <button onClick={() => setSelId(null)} className="btn-press rounded-lg border border-line p-2 text-ink-soft transition hover:bg-paper lg:hidden" aria-label="Close">
+                  <IconX className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="grid gap-4 p-5 md:grid-cols-2">
+              {/* balance + pay */}
+              <div className="rounded-xl bg-pine p-5 text-card">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-mango">{t("outstanding")}</p>
+                <p className="mt-1 font-mono text-4xl font-bold text-mango">
+                  <CountUp value={sel.balance} fmt={peso0} />
+                </p>
+                {overdueDays(sel) > 7 && (
+                  <p className="mt-1 font-mono text-[11px] text-mango/80">{overdueDays(sel)} days since last entry</p>
+                )}
+                <div className="mt-4 border-t border-dashed border-card/25 pt-3.5">
+                  <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-card/60">{t("recordPayment")}</p>
+                  <div className="flex flex-wrap gap-1.5">
                     {[20, 50, 100].map((a) => (
-                      <button key={a} onClick={() => doPay(Math.min(a, sel.balance))} className="btn-press rounded-md bg-card px-2.5 py-1 font-mono text-xs font-bold text-leaf shadow-sm transition hover:bg-leaf hover:text-card">
+                      <button key={a} onClick={() => recordPayment(sel.id, Math.min(a, sel.balance))} className="btn-press rounded-md bg-card/10 px-3 py-1.5 font-mono text-xs font-bold transition hover:bg-mango hover:text-pine-deep">
                         ₱{a}
                       </button>
                     ))}
                     {sel.balance > 0 && (
-                      <button onClick={() => doPay(sel.balance)} className="btn-press rounded-md bg-leaf px-2.5 py-1 font-mono text-xs font-bold text-card transition hover:bg-pine">
-                        full {peso0(sel.balance)}
+                      <button onClick={() => recordPayment(sel.id, sel.balance)} className="btn-press rounded-md bg-mango px-3 py-1.5 font-mono text-xs font-extrabold text-pine-deep transition hover:bg-mango-deep">
+                        lahat
                       </button>
                     )}
                   </div>
-                  <div className="flex gap-1.5">
-                    <input value={payAmt} onChange={(e) => setPayAmt(e.target.value)} type="number" placeholder="Amount" className="field px-2.5 py-1.5 text-xs" />
-                    <button onClick={() => doPay(parseFloat(payAmt))} disabled={!(parseFloat(payAmt) > 0)} className="btn-press rounded-md bg-leaf px-3 text-xs font-extrabold text-card transition enabled:hover:bg-pine disabled:opacity-40">
+                  <div className="mt-2 flex gap-1.5">
+                    <input value={payAmt} onChange={(e) => setPayAmt(e.target.value)} type="number" placeholder="₱ amount" className="field border-card/20 bg-card/10 px-2.5 py-1.5 text-xs text-card placeholder:text-card/50" />
+                    <button
+                      onClick={() => {
+                        const a = parseFloat(payAmt);
+                        if (a > 0) {
+                          recordPayment(sel.id, a);
+                          setPayAmt("");
+                        }
+                      }}
+                      className="btn-press rounded-md bg-leaf px-3 text-card transition hover:bg-pine"
+                      aria-label="Record custom payment"
+                    >
                       <IconCheck className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
-                <div className="rounded-lg border border-cherry/30 bg-cherry-soft/50 p-3.5">
-                  <p className="mb-2 text-[11px] font-extrabold uppercase tracking-wider text-cherry">{t("addUtang")}</p>
-                  <div className="flex gap-1.5">
-                    <input value={utangAmt} onChange={(e) => setUtangAmt(e.target.value)} type="number" placeholder="₱" className="field w-20 px-2.5 py-1.5 text-xs" />
-                    <input value={utangNote} onChange={(e) => setUtangNote(e.target.value)} placeholder="Note (e.g. bigas)" className="field flex-1 px-2.5 py-1.5 text-xs" />
-                    <button
-                      onClick={() => {
-                        const a = parseFloat(utangAmt);
-                        if (a > 0) {
-                          addUtang(sel.id, a, utangNote.trim() || undefined);
-                          setUtangAmt("");
-                          setUtangNote("");
-                        }
-                      }}
-                      disabled={!(parseFloat(utangAmt) > 0)}
-                      className="btn-press rounded-md bg-cherry px-3 text-xs font-extrabold text-card transition enabled:hover:bg-pine disabled:opacity-40"
-                    >
-                      <IconPlus className="h-4 w-4" />
-                    </button>
-                  </div>
-                  <button onClick={openSms} disabled={sel.balance === 0} className="btn-press mt-2 inline-flex w-full items-center justify-center gap-2 rounded-md bg-pine py-2 text-xs font-extrabold uppercase tracking-wide text-mango transition enabled:hover:bg-pine-deep disabled:opacity-40">
-                    <IconSms className="h-4 w-4" /> {t("sendReminder")}
-                  </button>
+              </div>
+
+              {/* add utang + history */}
+              <div className="flex flex-col gap-4">
+                <AddUtangBox onAdd={(a, n) => addUtang(sel.id, a, n)} />
+                <div className="flex-1 rounded-xl border border-line bg-paper/50 p-4">
+                  <p className="mb-2.5 text-[10px] font-bold uppercase tracking-widest text-ink-soft">Payment history</p>
+                  <ul className="max-h-56 space-y-1.5 overflow-y-auto">
+                    {[...sel.history].reverse().map((h) => (
+                      <li key={h.id} className="flex items-center gap-2.5 rounded-md bg-card px-3 py-2 text-xs">
+                        <span className={`h-2 w-2 shrink-0 rounded-full ${h.type === "payment" ? "bg-leaf" : "bg-cherry"}`} />
+                        <span className="min-w-0 flex-1 truncate font-semibold">
+                          {h.type === "payment" ? "Bayad" : "Utang"}
+                          {h.note ? ` · ${h.note}` : ""}
+                        </span>
+                        <span className="shrink-0 font-mono text-[10px] text-ink-soft">{fmtDay(h.ts)} {fmtTime(h.ts)}</span>
+                        <span className={`tnum shrink-0 font-mono font-bold ${h.type === "payment" ? "text-leaf" : "text-cherry"}`}>
+                          {h.type === "payment" ? "−" : "+"}{peso0(h.amount)}
+                        </span>
+                      </li>
+                    ))}
+                    {sel.history.length === 0 && <li className="py-4 text-center text-xs text-ink-soft">Walang tala pa.</li>}
+                  </ul>
                 </div>
               </div>
-
-              {/* timeline */}
-              <div className="px-5 py-4">
-                <p className="mb-3 text-[11px] font-extrabold uppercase tracking-wider text-ink-soft">Payment history timeline</p>
-                <ul className="max-h-72 space-y-0 overflow-y-auto">
-                  {timeline.map((h, i) => (
-                    <li key={i} className="relative flex gap-3 pb-4 pl-1">
-                      {i < timeline.length - 1 && <span className="absolute left-[15px] top-7 h-full w-px bg-line" />}
-                      <span className={`z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${h.type === "utang" ? "bg-cherry-soft text-cherry" : "bg-leaf-soft text-leaf"}`}>
-                        {h.type === "utang" ? <IconPlus className="h-3.5 w-3.5" /> : <IconCheck className="h-3.5 w-3.5" />}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-baseline justify-between gap-2">
-                          <p className="text-sm font-semibold">
-                            {h.type === "utang" ? "Utang" : "Payment"}
-                            <span className={`tnum ml-2 font-mono font-bold ${h.type === "utang" ? "text-cherry" : "text-leaf"}`}>
-                              {h.type === "utang" ? "+" : "−"}{peso(h.amount)}
-                            </span>
-                          </p>
-                          <p className="shrink-0 font-mono text-[10px] text-ink-soft">{fmtDayFull(h.ts)} · {fmtTime(h.ts)}</p>
-                        </div>
-                        {h.note && <p className="truncate text-xs text-ink-soft">{h.note}</p>}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
             </div>
-          ) : (
-            <div className="rounded-xl border border-dashed border-line p-10 text-center text-sm text-ink-soft">
-              Walang suki yet — add your first customer.
+          </div>
+        ) : (
+          <div className="flex h-full min-h-[380px] items-center justify-center rounded-xl border border-dashed border-line bg-card/50 p-8">
+            <div className="text-center">
+              <IconUsers className="mx-auto h-10 w-10 text-ink-soft/40" />
+              <p className="mt-3 font-display text-lg font-bold">Pumili ng suki</p>
+              <p className="mt-1 max-w-64 text-sm text-ink-soft">
+                Click a customer on the left to see their ledger, collect payments, or send a reminder.
+              </p>
             </div>
-          )}
-        </Reveal>
+          </div>
+        )}
       </div>
 
-      {/* SMS modal */}
-      <Modal open={smsOpen} onClose={() => setSmsOpen(false)} title={`SMS → ${sel?.name ?? ""}`}>
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 rounded-lg bg-paper px-3 py-2 font-mono text-xs text-ink-soft">
-            <IconSms className="h-4 w-4 shrink-0" /> to {sel?.phone} · via Semaphore PH · ₱0.25/credit
-          </div>
-          <textarea value={smsMsg} onChange={(e) => setSmsMsg(e.target.value)} rows={4} className="field resize-none" />
-          <button
-            onClick={() => {
-              setSmsOpen(false);
-              notify("ok", "SMS sent", `Reminder delivered to ${sel?.phone}`);
-            }}
-            className="btn-press inline-flex w-full items-center justify-center gap-2 rounded-lg bg-mango py-2.5 font-display text-sm font-extrabold uppercase tracking-wide text-pine-deep transition hover:bg-mango-deep"
-          >
-            <IconSend className="h-4 w-4" /> Send reminder
-          </button>
-        </div>
-      </Modal>
-
-      {/* add customer modal */}
-      <Modal open={custOpen} onClose={() => setCustOpen(false)} title="Bagong suki">
+      <Modal open={addModal} onClose={() => setAddModal(false)} title="Bagong suki">
         <div className="space-y-3.5">
-          <Field label="Name" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g. Aling Dading" />
-          <Field label="Phone" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="0917 …" />
+          <Field label="Name" value={newCust.name} onChange={(e) => setNewCust({ ...newCust, name: e.target.value })} placeholder="e.g. Aling Rosing" />
+          <Field label="Phone" value={newCust.phone} onChange={(e) => setNewCust({ ...newCust, phone: e.target.value })} placeholder="0917 …" />
           <button
             onClick={() => {
-              if (newName.trim()) {
-                addCustomer(newName.trim(), newPhone.trim() || "—");
-                setNewName("");
-                setNewPhone("");
-                setCustOpen(false);
-              }
+              if (!newCust.name.trim()) return;
+              addCustomer(newCust.name.trim(), newCust.phone.trim() || "—");
+              setNewCust({ name: "", phone: "" });
+              setAddModal(false);
             }}
-            disabled={!newName.trim()}
-            className="btn-press w-full rounded-lg bg-mango py-2.5 font-display text-sm font-extrabold uppercase tracking-wide text-pine-deep transition enabled:hover:bg-mango-deep disabled:opacity-50"
+            disabled={!newCust.name.trim()}
+            className="btn-press w-full rounded-lg bg-mango py-2.5 font-display text-sm font-extrabold uppercase tracking-wide text-pine-deep transition enabled:hover:bg-mango-deep disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Add suki
+            Save suki
           </button>
         </div>
       </Modal>
     </div>
   );
+}
+
+function AddUtangBox({ onAdd }: { onAdd: (amount: number, note?: string) => void }) {
+  const [amt, setAmt] = useState("");
+  const [note, setNote] = useState("");
+  return (
+    <div className="rounded-xl border border-line bg-paper/50 p-4">
+      <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-cherry">{useStoreT().addUtangLabel}</p>
+      <div className="flex gap-1.5">
+        <input value={amt} onChange={(e) => setAmt(e.target.value)} type="number" placeholder="₱" className="field w-20 px-2.5 py-1.5 text-xs" />
+        <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="note (bigas, kape…)" className="field flex-1 px-2.5 py-1.5 text-xs" />
+        <button
+          onClick={() => {
+            const a = parseFloat(amt);
+            if (a > 0) {
+              onAdd(a, note.trim() || undefined);
+              setAmt("");
+              setNote("");
+            }
+          }}
+          className="btn-press rounded-md bg-cherry px-3.5 text-xs font-extrabold text-card transition hover:bg-pine"
+        >
+          + {useStoreT().addBtn}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function useStoreT() {
+  const { t } = useStore();
+  return { addUtangLabel: t("addUtang"), addBtn: t("utang") };
 }

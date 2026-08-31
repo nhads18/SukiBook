@@ -71,12 +71,6 @@ export default function LoginGate({
                   We sent a magic link to <span className="font-semibold text-ink">{email}</span>.
                   Click it and you're in — your store loads instantly.
                 </p>
-                <button
-                  onClick={() => void submit({ preventDefault: () => undefined } as FormEvent)}
-                  className="btn-press mt-3 text-[11px] font-bold text-leaf underline-offset-2 hover:underline"
-                >
-                  Resend link
-                </button>
               </div>
             ) : (
               <form onSubmit={submit} className="mt-6 space-y-3">
@@ -97,9 +91,7 @@ export default function LoginGate({
                   {busy ? "Sending link…" : "Send magic link"}
                 </button>
                 {err && (
-                  <p className="rise rounded-md bg-cherry-soft px-3 py-2 text-xs font-semibold text-cherry">
-                    {err}
-                  </p>
+                  <p className="rise rounded-md bg-cherry-soft px-3 py-2 text-xs font-semibold text-cherry">{err}</p>
                 )}
               </form>
             )}

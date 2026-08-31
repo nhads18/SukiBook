@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { catMeta, downloadCSV, peso, productAgg, type Cat, type Product } from "../lib/data";
+import { catMeta, downloadCSV, peso, productAgg, type Cat } from "../lib/data";
 import { useStore } from "../lib/store";
 import { Field, Modal, Reveal } from "../components/ui";
 import { CategoryGlyph, IconDown, IconDownload, IconPlus, IconSearch, IconUp } from "../components/Icons";
@@ -135,13 +135,7 @@ export default function ProductsView() {
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative min-w-56 flex-1">
             <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft" />
-            <input
-              ref={searchRef}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={t("searchPh")}
-              className="field pl-9"
-            />
+            <input ref={searchRef} value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("searchPh")} className="field pl-9" />
           </div>
           <button
             onClick={exportCsv}

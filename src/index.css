@@ -39,11 +39,9 @@ body {
 }
 
 /* ================= themes =================
-   The whole app is built on semantic tokens, so redefining the
-   variables on <html data-theme> re-skins everything — sidebar,
-   masthead, charts, phone preview, login gate.                  */
-
-/* Awning (default) — the classic tindahan tarpaulin, defined in @theme. */
+   The whole app is built on semantic tokens, so redefining the variables
+   on <html data-theme> re-skins everything — sidebar, masthead, charts,
+   phone preview, login gate. */
 
 /* Barako — kapeng barako counter: espresso, copper, latte paper. */
 [data-theme="barako"] {
@@ -61,7 +59,7 @@ body {
   --font-display: "Fraunces", "Instrument Sans", serif;
 }
 
-/* Jeepney — hand-painted livery: maroon body, chrome yellow. */
+/* Jeepney — hand-painted livery: maroon body, chrome yellow signwriting. */
 [data-theme="jeepney"] {
   --color-ink: #2c1f1a;
   --color-ink-soft: #6e5f52;
@@ -83,11 +81,7 @@ body {
 
 /* ---- store awning stripes ---- */
 .stripes {
-  background: repeating-linear-gradient(
-    90deg,
-    var(--color-mango) 0 18px,
-    var(--color-pine) 18px 36px
-  );
+  background: repeating-linear-gradient(90deg, var(--color-mango) 0 18px, var(--color-pine) 18px 36px);
 }
 .stripes-anim {
   animation: awning 9s linear infinite;
@@ -98,11 +92,7 @@ body {
   }
 }
 .stripes-soft {
-  background: repeating-linear-gradient(
-    90deg,
-    rgba(246, 168, 28, 0.9) 0 14px,
-    rgba(16, 53, 36, 0.92) 14px 28px
-  );
+  background: repeating-linear-gradient(90deg, rgba(246, 168, 28, 0.9) 0 14px, rgba(16, 53, 36, 0.92) 14px 28px);
 }
 
 /* ---- film grain ---- */
@@ -130,171 +120,57 @@ body {
 }
 
 @keyframes pulse-dot {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.45;
-    transform: scale(0.7);
-  }
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.7); }
 }
-.pulse-dot {
-  animation: pulse-dot 1.5s ease-in-out infinite;
-}
+.pulse-dot { animation: pulse-dot 1.5s ease-in-out infinite; }
 
 @keyframes rise {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
 }
-.rise {
-  animation: rise 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
+.rise { animation: rise 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 
 @keyframes toast-in {
-  from {
-    opacity: 0;
-    transform: translateY(14px) scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to { opacity: 1; transform: none; }
 }
-.toast-in {
-  animation: toast-in 0.32s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
+.toast-in { animation: toast-in 0.32s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 
 @keyframes ticker-fade {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
 }
-.ticker-fade {
-  animation: ticker-fade 0.6s ease both;
-}
+.ticker-fade { animation: ticker-fade 0.6s ease both; }
 
 @keyframes bar-grow {
-  from {
-    transform: scaleY(0);
-  }
-  to {
-    transform: scaleY(1);
-  }
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
 }
-.bar-grow {
-  transform-origin: bottom;
-  animation: bar-grow 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
+.bar-grow { transform-origin: bottom; animation: bar-grow 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 
 @keyframes width-grow {
-  from {
-    transform: scaleX(0);
-  }
-  to {
-    transform: scaleX(1);
-  }
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
 }
-.width-grow {
-  transform-origin: left;
-  animation: width-grow 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
+.width-grow { transform-origin: left; animation: width-grow 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 
 @keyframes pop {
-  0% {
-    transform: scale(0.6);
-    opacity: 0;
-  }
-  70% {
-    transform: scale(1.06);
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+  0% { transform: scale(0.6); opacity: 0; }
+  70% { transform: scale(1.06); }
+  100% { transform: scale(1); opacity: 1; }
 }
-.pop {
-  animation: pop 0.35s cubic-bezier(0.2, 0.7, 0.3, 1.2) both;
-}
+.pop { animation: pop 0.35s cubic-bezier(0.2, 0.7, 0.3, 1.2) both; }
 
-@keyframes slide-up {
-  from {
-    transform: translateY(26px);
-    opacity: 0;
-  }
-  to {
-    transform: none;
-    opacity: 1;
-  }
-}
-.slide-up {
-  animation: slide-up 0.38s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
-
-@keyframes float-y {
-  0%,
-  100% {
-    transform: translateY(0) rotate(var(--rot, 0deg));
-  }
-  50% {
-    transform: translateY(-16px) rotate(var(--rot, 0deg));
-  }
-}
-.float-y {
-  animation: float-y 7s ease-in-out infinite;
-}
-
-@keyframes spin-slow {
-  to {
-    transform: rotate(360deg);
-  }
-}
-.spin-slow {
-  animation: spin-slow 90s linear infinite;
-}
-
-/* diagonal light sheen across the phone screen */
-.screen-sheen {
-  background: linear-gradient(
-    115deg,
-    transparent 30%,
-    rgba(255, 255, 255, 0.05) 45%,
-    rgba(255, 255, 255, 0.09) 50%,
-    rgba(255, 255, 255, 0.05) 55%,
-    transparent 70%
-  );
-}
-
-.btn-press:active {
-  transform: scale(0.96);
-}
-
-@keyframes dashmove {
-  to {
-    stroke-dashoffset: -14;
-  }
+@keyframes dash-flow {
+  to { stroke-dashoffset: -22; }
 }
 .flow-dash {
-  stroke-dasharray: 7 7;
-  animation: dashmove 1.1s linear infinite;
+  stroke-dasharray: 6 5;
+  animation: dash-flow 1.6s linear infinite;
 }
-@media (prefers-reduced-motion: reduce) {
-  .flow-dash {
-    animation: none;
-  }
-}
+
+.btn-press:active { transform: scale(0.96); }
 
 /* ---- form fields ---- */
 .field {
@@ -306,39 +182,24 @@ body {
 }
 
 /* ---- scrollbars ---- */
-*::-webkit-scrollbar {
-  width: 9px;
-  height: 9px;
-}
+*::-webkit-scrollbar { width: 9px; height: 9px; }
 *::-webkit-scrollbar-thumb {
   background: #c9cdbc;
   border-radius: 8px;
   border: 2px solid var(--color-paper);
 }
-*::-webkit-scrollbar-track {
-  background: transparent;
-}
+*::-webkit-scrollbar-track { background: transparent; }
 
 /* ---- print ---- */
 @media print {
-  .no-print {
-    display: none !important;
-  }
-  body {
-    background: #fdfdf8;
-  }
+  .no-print { display: none !important; }
+  body { background: #fdfdf8; }
 }
 
 /* ---- reduced motion ---- */
 @media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
-  .reveal {
-    transition: none;
-    opacity: 1;
-    transform: none;
-  }
+  html { scroll-behavior: auto; }
+  .reveal { transition: none; opacity: 1; transform: none; }
   .stripes-anim,
   .pulse-dot,
   .rise,
@@ -347,9 +208,7 @@ body {
   .bar-grow,
   .width-grow,
   .pop,
-  .slide-up,
-  .float-y,
-  .spin-slow {
+  .flow-dash {
     animation: none;
   }
 }

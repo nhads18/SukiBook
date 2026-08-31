@@ -227,44 +227,47 @@ export const IconBattery = (p: P) => (
   </S>
 );
 
-export const IconStorefront = (p: P) => (
-  <S {...p}>
-    <path d="M4.5 9.2 5.7 4.5h12.6l1.2 4.7" />
-    <path d="M3.8 9.2h16.4" />
-    <path d="M4.6 9.2a2.35 2.35 0 0 0 4.7.2 2.35 2.35 0 0 0 4.7 0 2.35 2.35 0 0 0 4.7-.2" />
-    <path d="M5.8 12.5v7.5h12.4v-7.5" />
-    <path d="M10 20v-4.6h4V20" />
-  </S>
-);
-
-/* ---- filled store badges (Google Play facets + Apple mark) ---- */
-
-export function BadgePlay({ className = "w-8 h-8" }: P) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-      <path d="M5 3.6 13.9 12 5 20.4c-.4-.2-.7-.6-.7-1.2V4.8c0-.6.3-1 .7-1.2z" fill="#32BBFF" />
-      <path d="M5 3.6c.3-.2.7-.2 1.1 0l10.4 6-2.6 2.4z" fill="#00E676" />
-      <path d="M5 20.4c.3.2.7.2 1.1 0l10.4-6-2.6-2.4z" fill="#FF3A44" />
-      <path d="m16.5 9.6 2.6 1.5c1.2.7 1.2 1.9 0 2.6l-2.6 1.5L13.9 12z" fill="#FFBC00" />
-    </svg>
-  );
-}
-
-export function BadgeApple({ className = "w-8 h-8" }: P) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-      <path
-        d="M16.6 12.9c0-2 1.6-3 1.7-3.1-1-1.4-2.4-1.6-2.9-1.6-1.2-.1-2.4.7-3 .7-.6 0-1.6-.7-2.6-.7-1.3 0-2.6.8-3.3 2-1.4 2.5-.4 6.1 1 8.1.7 1 1.5 2.1 2.6 2 1-.1 1.4-.7 2.7-.7s1.6.7 2.7.7c1.1 0 1.8-1 2.5-2 .8-1.2 1.1-2.3 1.1-2.4 0 0-2.4-.9-2.5-3zM14.6 6.6c.6-.7 1-1.7.9-2.7-.9 0-1.9.6-2.5 1.3-.5.6-1 1.6-.9 2.6 1 .1 2-.5 2.5-1.2z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-
 export const IconSheets = (p: P) => (
   <S {...p}>
     <rect x="4.5" y="3.5" width="15" height="17" rx="1.5" />
     <path d="M4.5 9h15M4.5 14.5h15M10 9v11.5" />
+  </S>
+);
+
+export const IconPalette = (p: P) => (
+  <S {...p}>
+    <path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.3 0 2-.8 2-1.8 0-.8-.5-1.3-.5-2 0-1 .8-1.7 2-1.7h2a3 3 0 0 0 3-3c0-4.7-3.9-8.5-8.5-8.5z" />
+    <path d="M7.5 10.5v.2M10.5 7v.2M14.5 7v.2" />
+  </S>
+);
+
+export const IconShield = (p: P) => (
+  <S {...p}>
+    <path d="M12 3.5 5 6.2v5.3c0 4.4 2.9 7.4 7 9 4.1-1.6 7-4.6 7-9V6.2z" />
+    <path d="m9 11.8 2.2 2.2 4-4.5" />
+  </S>
+);
+
+export const IconRocket = (p: P) => (
+  <S {...p}>
+    <path d="M12 3c3 2.2 4.5 5.2 4.5 9.2L12 15.5 7.5 12.2C7.5 8.2 9 5.2 12 3z" />
+    <circle cx="12" cy="9.3" r="1.7" />
+    <path d="m7.5 12.2-3 2.4 3.2.9M16.5 12.2l3 2.4-3.2.9" />
+    <path d="M10.5 16.3c0 2 .7 3.5 1.5 4.7.8-1.2 1.5-2.7 1.5-4.7" />
+  </S>
+);
+
+export const IconCopy = (p: P) => (
+  <S {...p}>
+    <rect x="8.5" y="8.5" width="12" height="12" rx="2" />
+    <path d="M16 4.5H6a2 2 0 0 0-2 2v10" />
+  </S>
+);
+
+export const IconPower = (p: P) => (
+  <S {...p}>
+    <path d="M12 3.5v8" />
+    <path d="M7.5 6.5a7 7 0 1 0 9 0" />
   </S>
 );
 
@@ -320,19 +323,18 @@ export function CategoryGlyph({ cat, className = "w-5 h-5" }: { cat: Cat; classN
 }
 
 /* ------------ brand mark: little awning over a peso coin ---------- */
-/* Uses tokens so the mark re-skins with the active theme.            */
 
 export function LogoMark({ className = "w-9 h-9" }: P) {
   return (
     <svg viewBox="0 0 40 40" className={className} aria-hidden="true">
-      <rect x="1" y="1" width="38" height="38" rx="9" fill="var(--color-pine)" />
+      <rect x="1" y="1" width="38" height="38" rx="9" fill="#103524" />
       <path
         d="M7 12h26l-2.5 5.5c-.8 1.7-3.2 1.7-4 0-.8 1.7-3.2 1.7-4 0-.8 1.7-3.2 1.7-4 0-.8 1.7-3.2 1.7-4 0-.8 1.7-3.2 1.7-4 0L7 12z"
-        fill="var(--color-mango)"
+        fill="#F6A81C"
       />
       <path
         d="M16 31V19.5h5a3.4 3.4 0 0 1 0 6.8h-5M13.5 23.5h10M13.5 26.5h8.5"
-        stroke="var(--color-mango)"
+        stroke="#F6A81C"
         strokeWidth="2"
         strokeLinecap="round"
         fill="none"
@@ -340,50 +342,3 @@ export function LogoMark({ className = "w-9 h-9" }: P) {
     </svg>
   );
 }
-
-export const IconPalette = (p: P) => (
-  <S {...p}>
-    <path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.6 0 2.1-1 1.5-2.1-.6-1.1-.1-2.4 1.4-2.4h1.6c2.2 0 4-1.8 4-4 0-4.7-3.8-8.5-8.5-8.5z" />
-    <circle cx="7.8" cy="10.2" r="0.6" />
-    <circle cx="11.6" cy="7.4" r="0.6" />
-    <circle cx="16" cy="9.6" r="0.6" />
-  </S>
-);
-
-export const IconPower = (p: P) => (
-  <S {...p}>
-    <path d="M8.2 5.3a8 8 0 1 0 7.6 0" />
-    <path d="M12 2.5V11" />
-  </S>
-);
-
-export const IconExternal = (p: P) => (
-  <S {...p}>
-    <path d="M13.5 4.5H19.5V10.5" />
-    <path d="m19.5 4.5-8.5 8.5" />
-    <path d="M19 13.5v5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 18.5v-11A1.5 1.5 0 0 1 6.5 6h5" />
-  </S>
-);
-
-export const IconShield = (p: P) => (
-  <S {...p}>
-    <path d="M12 3.5 5 6.2v5.3c0 4.4 2.9 7.4 7 9 4.1-1.6 7-4.6 7-9V6.2z" />
-    <path d="m9 11.8 2.2 2.2 4-4.5" />
-  </S>
-);
-
-export const IconRocket = (p: P) => (
-  <S {...p}>
-    <path d="M12 3c3 2.2 4.5 5.2 4.5 9.2L12 15.5 7.5 12.2C7.5 8.2 9 5.2 12 3z" />
-    <circle cx="12" cy="9.3" r="1.7" />
-    <path d="m7.5 12.2-3 2.4 3.2.9M16.5 12.2l3 2.4-3.2.9" />
-    <path d="M10.5 16.3c0 2 .7 3.5 1.5 4.7.8-1.2 1.5-2.7 1.5-4.7" />
-  </S>
-);
-
-export const IconCopy = (p: P) => (
-  <S {...p}>
-    <rect x="8.5" y="8.5" width="12" height="12" rx="2" />
-    <path d="M16 4.5H6a2 2 0 0 0-2 2v10" />
-  </S>
-);

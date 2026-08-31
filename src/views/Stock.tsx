@@ -57,7 +57,6 @@ export default function StockView() {
 
   return (
     <div className="space-y-5">
-      {/* stat strip */}
       <Reveal>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[
@@ -78,7 +77,6 @@ export default function StockView() {
       </Reveal>
 
       <div className="grid gap-5 lg:grid-cols-12">
-        {/* stock table */}
         <Reveal className="lg:col-span-8">
           <div className="overflow-hidden rounded-xl border border-line bg-card shadow-sm">
             <div className="flex items-center justify-between border-b border-line px-5 py-4">
@@ -112,7 +110,7 @@ export default function StockView() {
                         <td className="px-5 py-2.5">
                           <div className="flex items-center gap-2.5">
                             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-paper" style={{ color: catMeta(p.cat).color }}>
-                              <CategoryGlyph cat={p.cat} className="h-4.5 w-4.5" />
+                              <CategoryGlyph cat={p.cat} className="h-4 w-4" />
                             </span>
                             <div className="min-w-0">
                               <p className="truncate font-semibold leading-tight">{p.name}</p>
@@ -200,7 +198,6 @@ export default function StockView() {
           </div>
         </Reveal>
 
-        {/* right column */}
         <div className="space-y-5 lg:col-span-4">
           <Reveal delay={80}>
             <div className="rounded-xl border border-line bg-card p-5 shadow-sm">
@@ -219,9 +216,7 @@ export default function StockView() {
                         </span>
                       </div>
                       <div className="mt-1.5 flex items-center justify-between">
-                        <p className="text-[11px] text-ink-soft">
-                          sells ~{r.rate.toFixed(1)}/day
-                        </p>
+                        <p className="text-[11px] text-ink-soft">sells ~{r.rate.toFixed(1)}/day</p>
                         <button
                           onClick={() => addStock(r.id, order)}
                           className="btn-press rounded-md bg-pine px-2.5 py-1 font-mono text-[11px] font-bold text-mango transition hover:bg-pine-deep"

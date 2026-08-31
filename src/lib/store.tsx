@@ -91,13 +91,12 @@ interface StoreCtx {
   t: (k: StrKey) => string;
   notify: (kind: Toast["kind"], title: string, sub?: string) => void;
   recordSale: (input: SaleInput) => number;
-  deleteSale: (id: string) => void;
-  updateProduct: (id: string, patch: Partial<Product>) => void;
-  addProduct: (p: { name: string; cat: Cat; price: number; cost: number; stock: number }) => void;
-  addStock: (productId: string, qty: number) => void;
   recordPayment: (customerId: string, amount: number) => void;
   addUtang: (customerId: string, amount: number, note?: string) => void;
   addCustomer: (name: string, phone: string) => void;
+  updateProduct: (id: string, patch: Partial<Product>) => void;
+  addProduct: (p: Omit<Product, "id">) => void;
+  addStock: (id: string, qty: number) => void;
   updateSettings: (patch: Partial<Settings>) => void;
   resetDemo: () => void;
   cloud: { configured: boolean; mode: "demo" | "cloud" | "gate"; email: string | null };
@@ -160,9 +159,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   dbRef.current = db;
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
-  const cloudTimer = useRef<number | null>(null);
   const bootRef = useRef(false);
+  const cloudTimer = useRef<number | null>(null);
 
+  /* persist local snapshot (offline-first) */
   useEffect(() => {
     try {
       localStorage.setItem(KEY, JSON.stringify({ db, settings }));
@@ -242,17 +242,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [settings.lang],
   );
 
+  /* ---------------- mutations ---------------- */
+
   const recordSale = useCallback(
     (input: SaleInput): number => {
       let total = 0;
       const now = Date.now();
-      const sale: Sale = {
-        id: uid(),
-        ts: now,
-        items: [],
-        payment: input.payment,
-        total: 0,
-      };
+      const sale: Sale = { id: uid(), ts: now, items: [], payment: input.payment, total: 0 };
       const movs: DB["movements"] = [];
       setDb((prev) => {
         const products = prev.products.map((p) => {
@@ -260,108 +256,80 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           if (!line) return p;
           const qty = Math.min(line.qty, p.stock);
           if (qty <= 0) return p;
-          sale.items.push({
-            productId: p.id,
-            name: p.name,
-            cat: p.cat,
-            qty,
-            price: p.price,
-            cost: p.cost,
-          });
-          movs.push({
-            id: uid(),
-            ts: now,
-            productId: p.id,
-            name: p.name,
-            type: "sale",
-            qty: -qty,
-            saleId: sale.id,
-          });
+          sale.items.push({ productId: p.id, name: p.name, cat: p.cat, qty, price: p.price, cost: p.cost });
+          movs.push({ id: uid(), ts: now, productId: p.id, name: p.name, type: "sale", qty: -qty });
           return { ...p, stock: p.stock - qty };
         });
-        sale.total = sale.items.reduce((s, it) => s + it.qty * it.price, 0);
-        let customers = prev.customers;
-        if (sale.payment === "utang" && input.customerId) {
-          sale.customerId = input.customerId;
-          customers = prev.customers.map((c) =>
-            c.id === input.customerId
-              ? {
-                  ...c,
-                  balance: c.balance + sale.total,
-                  history: [
-                    ...c.history,
-                    {
-                      ts: now,
-                      type: "utang" as const,
-                      amount: sale.total,
-                      note: sale.items[0]?.name ?? "Tinda",
-                    },
-                  ],
-                }
-              : c,
-          );
-        }
-        return {
-          ...prev,
-          products,
-          customers,
-          sales: [sale, ...prev.sales],
-          movements: [...movs, ...prev.movements],
-        };
+        total = sale.items.reduce((s, i) => s + i.price * i.qty, 0);
+        sale.total = total;
+        if (input.payment === "utang" && input.customerId) sale.customerId = input.customerId;
+        const customers =
+          input.payment === "utang" && input.customerId
+            ? prev.customers.map((c) =>
+                c.id === input.customerId
+                  ? {
+                      ...c,
+                      balance: c.balance + total,
+                      history: [...c.history, { id: uid(), ts: now, type: "utang" as const, amount: total, note: "bili" }],
+                    }
+                  : c,
+              )
+            : prev.customers;
+        return { ...prev, products, customers, sales: [sale, ...prev.sales], movements: [...movs, ...prev.movements] };
       });
-      total = sale.total;
       markSync();
-      notify(
-        "ok",
-        `${peso(sale.total)} nairekord`,
-        `${sale.items.reduce((s, i) => s + i.qty, 0)} items · ${
-          sale.payment === "gcash" ? "GCash" : sale.payment === "utang" ? "Utang" : "Cash"
-        }`,
-      );
       return total;
+    },
+    [markSync],
+  );
+
+  const recordPayment = useCallback(
+    (customerId: string, amount: number) => {
+      setDb((prev) => ({
+        ...prev,
+        customers: prev.customers.map((c) =>
+          c.id === customerId
+            ? {
+                ...c,
+                balance: Math.max(0, c.balance - amount),
+                history: [...c.history, { id: uid(), ts: Date.now(), type: "payment" as const, amount }],
+              }
+            : c,
+        ),
+      }));
+      markSync();
+      notify("ok", "Bayad recorded", peso(amount));
     },
     [markSync, notify],
   );
 
-  const deleteSale = useCallback(
-    (id: string) => {
-      setDb((prev) => {
-        const sale = prev.sales.find((s) => s.id === id);
-        if (!sale) return prev;
-        const products = prev.products.map((p) => {
-          const it = sale.items.find((i) => i.productId === p.id);
-          return it ? { ...p, stock: p.stock + it.qty } : p;
-        });
-        let customers = prev.customers;
-        if (sale.payment === "utang" && sale.customerId) {
-          customers = prev.customers.map((c) =>
-            c.id === sale.customerId
-              ? {
-                  ...c,
-                  balance: Math.max(0, c.balance - sale.total),
-                  history: [
-                    ...c.history,
-                    {
-                      ts: Date.now(),
-                      type: "payment" as const,
-                      amount: sale.total,
-                      note: "Voided entry",
-                    },
-                  ],
-                }
-              : c,
-          );
-        }
-        return {
-          ...prev,
-          products,
-          customers,
-          sales: prev.sales.filter((s) => s.id !== id),
-          movements: prev.movements.filter((m) => m.saleId !== id),
-        };
-      });
+  const addUtang = useCallback(
+    (customerId: string, amount: number, note?: string) => {
+      setDb((prev) => ({
+        ...prev,
+        customers: prev.customers.map((c) =>
+          c.id === customerId
+            ? {
+                ...c,
+                balance: c.balance + amount,
+                history: [...c.history, { id: uid(), ts: Date.now(), type: "utang" as const, amount, note }],
+              }
+            : c,
+        ),
+      }));
       markSync();
-      notify("info", "Entry voided", "Stock returned to shelf");
+    },
+    [markSync],
+  );
+
+  const addCustomer = useCallback(
+    (name: string, phone: string) => {
+      setDb((prev) => ({
+        ...prev,
+        customers: [...prev.customers, { id: uid(), name, phone, balance: 0, history: [] }],
+      }));
+      markSync();
+      notify("ok", "Suki added", name);
     },
     [markSync, notify],
   );
@@ -378,104 +346,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
 
   const addProduct = useCallback(
-    (p: { name: string; cat: Cat; price: number; cost: number; stock: number }) => {
-      setDb((prev) => ({
-        ...prev,
-        products: [{ id: uid(), ...p }, ...prev.products],
-      }));
+    (p: Omit<Product, "id">) => {
+      setDb((prev) => ({ ...prev, products: [{ ...p, id: uid() }, ...prev.products] }));
       markSync();
-      notify("ok", "Produkto naidagdag", p.name);
+      notify("ok", "Product added", p.name);
     },
     [markSync, notify],
   );
 
   const addStock = useCallback(
-    (productId: string, qty: number) => {
+    (id: string, qty: number) => {
       setDb((prev) => {
-        const prod = prev.products.find((p) => p.id === productId);
-        if (!prod || qty <= 0) return prev;
+        const p = prev.products.find((x) => x.id === id);
+        if (!p) return prev;
         return {
           ...prev,
-          products: prev.products.map((p) =>
-            p.id === productId ? { ...p, stock: p.stock + qty } : p,
-          ),
+          products: prev.products.map((x) => (x.id === id ? { ...x, stock: x.stock + qty } : x)),
           movements: [
-            {
-              id: uid(),
-              ts: Date.now(),
-              productId,
-              name: prod.name,
-              type: "restock" as const,
-              qty,
-            },
+            { id: uid(), ts: Date.now(), productId: id, name: p.name, type: "restock" as const, qty },
             ...prev.movements,
           ],
         };
       });
       markSync();
-      notify("ok", `+${qty} stock`, "Naitala ang delivery");
     },
-    [markSync, notify],
-  );
-
-  const recordPayment = useCallback(
-    (customerId: string, amount: number) => {
-      if (amount <= 0) return;
-      setDb((prev) => ({
-        ...prev,
-        customers: prev.customers.map((c) =>
-          c.id === customerId
-            ? {
-                ...c,
-                balance: Math.max(0, c.balance - amount),
-                history: [
-                  ...c.history,
-                  { ts: Date.now(), type: "payment" as const, amount, note: "Bayad" },
-                ],
-              }
-            : c,
-        ),
-      }));
-      markSync();
-      notify("ok", `${peso(amount)} nabayaran`, "Salamat, suki!");
-    },
-    [markSync, notify],
-  );
-
-  const addUtang = useCallback(
-    (customerId: string, amount: number, note?: string) => {
-      if (amount <= 0) return;
-      setDb((prev) => ({
-        ...prev,
-        customers: prev.customers.map((c) =>
-          c.id === customerId
-            ? {
-                ...c,
-                balance: c.balance + amount,
-                history: [
-                  ...c.history,
-                  { ts: Date.now(), type: "utang" as const, amount, note: note ?? "Tinda" },
-                ],
-              }
-            : c,
-        ),
-      }));
-      markSync();
-      notify("warn", `${peso(amount)} utang naitala`, "Naidagdag sa ledger");
-    },
-    [markSync, notify],
-  );
-
-  const addCustomer = useCallback(
-    (name: string, phone: string) => {
-      setDb((prev) => ({
-        ...prev,
-        customers: [...prev.customers, { id: uid(), name, phone, history: [], balance: 0 }],
-      }));
-      markSync();
-      notify("ok", "Suking naidagdag", name);
-    },
-    [markSync, notify],
+    [markSync],
   );
 
   const updateSettings = useCallback(
@@ -487,66 +382,67 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
 
   const resetDemo = useCallback(() => {
-    localStorage.removeItem(KEY);
-    window.location.reload();
-  }, []);
+    setDb(genDB());
+    markSync();
+    notify("info", "Demo data reset", "Fresh 14-day ledger generated");
+  }, [markSync, notify]);
 
-  /* ---------------- cloud auth actions ---------------- */
-  const login = useCallback(async (email: string) => {
-    setGateBusy(true);
-    const res = await sendMagicLink(email);
-    setGateBusy(false);
-    if (!res.ok) throw new Error(res.error ?? "Could not send the magic link");
-    setGateSent(true);
-  }, []);
+  const login = useCallback(
+    async (email: string) => {
+      setGateBusy(true);
+      try {
+        const res = await sendMagicLink(email);
+        if (!res.ok) throw new Error(res.error ?? "Could not send link");
+        setGateSent(true);
+      } finally {
+        setGateBusy(false);
+      }
+    },
+    [],
+  );
 
   const logout = useCallback(() => {
     void signOutUser();
-    setCloudUser(null);
-    setGateSent(false);
+    setBypass(false);
     bootRef.current = false;
+    setCloudUser(null);
   }, []);
 
   const continueDemo = useCallback(() => setBypass(true), []);
 
-  const mode: "demo" | "cloud" | "gate" = !configured || bypass ? "demo" : cloudUser ? "cloud" : "gate";
+  const cloud: StoreCtx["cloud"] = !configured
+    ? { configured: false, mode: "demo", email: null }
+    : cloudUser
+      ? { configured: true, mode: "cloud", email: cloudUser.email }
+      : bypass
+        ? { configured: true, mode: "demo", email: null }
+        : { configured: true, mode: "gate", email: null };
 
-  if (mode === "gate") {
-    return <LoginGate busy={gateBusy} sent={gateSent} onSend={login} onDemo={continueDemo} />;
+  const value: StoreCtx = {
+    db, settings, toasts, sync, t, notify,
+    recordSale, recordPayment, addUtang, addCustomer,
+    updateProduct, addProduct, addStock, updateSettings, resetDemo,
+    cloud, login, logout, continueDemo,
+  };
+
+  if (cloud.mode === "gate") {
+    return (
+      <LoginGate
+        busy={gateBusy}
+        sent={gateSent}
+        onSend={login}
+        onDemo={continueDemo}
+      />
+    );
   }
 
-  return (
-    <Ctx.Provider
-      value={{
-        db,
-        settings,
-        toasts,
-        sync,
-        t,
-        notify,
-        recordSale,
-        deleteSale,
-        updateProduct,
-        addProduct,
-        addStock,
-        recordPayment,
-        addUtang,
-        addCustomer,
-        updateSettings,
-        resetDemo,
-        cloud: { configured, mode, email: cloudUser?.email ?? null },
-        login,
-        logout,
-        continueDemo,
-      }}
-    >
-      {children}
-    </Ctx.Provider>
-  );
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
 export function useStore(): StoreCtx {
   const ctx = useContext(Ctx);
-  if (!ctx) throw new Error("useStore must be used inside StoreProvider");
+  if (!ctx) throw new Error("useStore must be used within StoreProvider");
   return ctx;
 }
+
+export { peso };

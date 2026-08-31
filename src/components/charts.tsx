@@ -81,7 +81,8 @@ export function AreaChart({
   const max = Math.max(...series.map((s) => s.revenue), ...(prev ?? []).map((s) => s.revenue), 1);
   const x = (i: number) => pad + (i / Math.max(series.length - 1, 1)) * (W - pad * 2);
   const y = (v: number) => H - 26 - (v / max) * (H - 52);
-  const line = (arr: DayAgg[]) => arr.map((s, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(s.revenue).toFixed(1)}`).join(" ");
+  const line = (arr: DayAgg[]) =>
+    arr.map((s, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(s.revenue).toFixed(1)}`).join(" ");
   const area = `${line(series)} L${x(series.length - 1).toFixed(1)},${H - 24} L${x(0).toFixed(1)},${H - 24} Z`;
 
   const onMove = (e: React.MouseEvent) => {
@@ -106,20 +107,10 @@ export function AreaChart({
           </linearGradient>
         </defs>
         {[0.25, 0.5, 0.75].map((f) => (
-          <line
-            key={f}
-            x1={pad}
-            x2={W - pad}
-            y1={y(max * f)}
-            y2={y(max * f)}
-            stroke="var(--color-line)"
-            strokeDasharray="3 5"
-          />
+          <line key={f} x1={pad} x2={W - pad} y1={y(max * f)} y2={y(max * f)} stroke="#e0e2d2" strokeDasharray="3 5" />
         ))}
-        <line x1={pad} x2={W - pad} y1={H - 24} y2={H - 24} stroke="var(--color-line)" />
-        {prev && (
-          <path d={line(prev)} fill="none" stroke="var(--color-mango-deep)" strokeWidth="2" strokeDasharray="5 5" opacity="0.8" />
-        )}
+        <line x1={pad} x2={W - pad} y1={H - 24} y2={H - 24} stroke="#cdd0be" />
+        {prev && <path d={line(prev)} fill="none" stroke="#c9a24b" strokeWidth="2" strokeDasharray="5 5" opacity="0.8" />}
         <path d={area} fill="url(#areaFill)" />
         <path d={line(series)} fill="none" stroke="var(--color-pine)" strokeWidth="2.4" strokeLinejoin="round" />
         {hv && (
@@ -141,9 +132,7 @@ export function AreaChart({
         >
           <p className="font-mono text-[10px] text-card/70">{fmtDay(hv.ts)}</p>
           <p className="tnum font-mono text-sm font-bold">{peso0(hv.revenue)}</p>
-          {hp && (
-            <p className="tnum font-mono text-[10px] text-mango">prev {peso0(hp.revenue)}</p>
-          )}
+          {hp && <p className="tnum font-mono text-[10px] text-mango">prev {peso0(hp.revenue)}</p>}
         </div>
       )}
     </div>
@@ -161,10 +150,7 @@ export function Donut({
   centerLabel: string;
   centerValue: string;
 }) {
-  const total = Math.max(
-    segments.reduce((s, x) => s + x.value, 0),
-    1,
-  );
+  const total = Math.max(segments.reduce((s, x) => s + x.value, 0), 1);
   const R = 52;
   const C = 2 * Math.PI * R;
   let acc = 0;
@@ -188,7 +174,6 @@ export function Donut({
                 strokeWidth="17"
                 strokeDasharray={`${Math.max(frac * C - 2, 0)} ${C}`}
                 strokeDashoffset={-off * C}
-                strokeLinecap="butt"
                 className="transition-all duration-700"
               />
             );
@@ -196,9 +181,7 @@ export function Donut({
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="tnum font-mono text-lg font-bold leading-none">{centerValue}</span>
-          <span className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-ink-soft">
-            {centerLabel}
-          </span>
+          <span className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-ink-soft">{centerLabel}</span>
         </div>
       </div>
       <ul className="flex-1 space-y-2.5">
@@ -235,9 +218,7 @@ export function Heatmap({ grid }: { grid: number[][] }) {
         ))}
         {grid.map((row, r) => (
           <div key={r} className="contents">
-            <div className="flex items-center font-mono text-[10px] font-semibold text-ink-soft">
-              {DAYS[r]}
-            </div>
+            <div className="flex items-center font-mono text-[10px] font-semibold text-ink-soft">{DAYS[r]}</div>
             {row.map((v, c) => (
               <div
                 key={c}
@@ -257,16 +238,10 @@ export function Heatmap({ grid }: { grid: number[][] }) {
       <div className="mt-3 flex items-center gap-2 text-[10px] font-medium text-ink-soft">
         Less
         {[12, 30, 50, 72, 100].map((a) => (
-          <span
-            key={a}
-            className="h-3 w-5 rounded-[3px]"
-            style={{ background: `color-mix(in srgb, var(--color-pine) ${a}%, var(--color-card))` }}
-          />
+          <span key={a} className="h-3 w-5 rounded-[3px]" style={{ background: `color-mix(in srgb, var(--color-pine) ${a}%, var(--color-card))` }} />
         ))}
         More
-        <span className="ml-3 rounded bg-mango-soft px-2 py-0.5 font-semibold text-mango-deep">
-          Peak: Fri &amp; Sat, 5–7 PM
-        </span>
+        <span className="ml-3 rounded bg-mango-soft px-2 py-0.5 font-semibold text-mango-deep">Peak: Fri &amp; Sat, 5–7 PM</span>
       </div>
     </div>
   );
