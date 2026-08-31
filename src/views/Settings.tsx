@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useStore, THEMES } from "../lib/store";
 import { Field, Modal, Reveal, Seg } from "../components/ui";
-import { IconCheck, IconGear, IconPalette, IconShield, IconSheets, IconSync, IconUsers } from "../components/Icons";
+import { IconCheck, IconGear, IconPalette, IconPower, IconShield, IconSheets, IconSync, IconUsers } from "../components/Icons";
 import type { Lang } from "../lib/i18n";
 
 function Switch({ on, onToggle }: { on: boolean; onToggle: () => void }) {
@@ -206,21 +206,37 @@ export default function SettingsView() {
                 <p className="text-xs font-semibold text-mango-deep">
                   You're browsing demo data — sign in to sync this store to the cloud.
                 </p>
-                <button
-                  onClick={() => window.location.reload()}
-                  className="btn-press shrink-0 rounded-md bg-pine px-3 py-1.5 text-[11px] font-extrabold text-mango transition hover:bg-pine-deep"
-                >
-                  Sign in
-                </button>
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="btn-press rounded-md bg-pine px-3 py-1.5 text-[11px] font-extrabold text-mango transition hover:bg-pine-deep"
+                  >
+                    Sign in
+                  </button>
+                  <button
+                    onClick={() => window.dispatchEvent(new CustomEvent("sukibook-nav", { detail: "golive" }))}
+                    className="btn-press text-[10px] font-bold text-mango-deep underline decoration-mango decoration-2 underline-offset-2 transition hover:text-pine"
+                  >
+                    Go Live checklist →
+                  </button>
+                </div>
               </div>
             ) : (
-              <p className="mt-4 rounded-lg bg-paper/70 px-3.5 py-3 text-xs leading-relaxed text-ink-soft">
-                Supabase isn't configured yet. Add{" "}
-                <span className="font-mono font-bold text-pine">VITE_SUPABASE_URL</span> and{" "}
-                <span className="font-mono font-bold text-pine">VITE_SUPABASE_ANON_KEY</span> in Vercel,
-                run <span className="font-mono font-bold text-pine">supabase/schema.sql</span>, and this
-                build goes live — full steps in the <span className="font-bold">Deploy</span> tab.
-              </p>
+              <div className="mt-4 rounded-lg bg-paper/70 px-3.5 py-3">
+                <p className="text-xs leading-relaxed text-ink-soft">
+                  Supabase isn't configured yet. Add{" "}
+                  <span className="font-mono font-bold text-pine">VITE_SUPABASE_URL</span> and{" "}
+                  <span className="font-mono font-bold text-pine">VITE_SUPABASE_ANON_KEY</span> in Vercel,
+                  run <span className="font-mono font-bold text-pine">supabase/schema.sql</span>, and this
+                  build goes live.
+                </p>
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent("sukibook-nav", { detail: "golive" }))}
+                  className="btn-press mt-2.5 inline-flex items-center gap-1.5 rounded-md bg-mango px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-wide text-pine-deep transition hover:bg-mango-deep"
+                >
+                  <IconPower className="h-3.5 w-3.5" /> Open the Go Live checklist
+                </button>
+              </div>
             )}
           </div>
         </Reveal>

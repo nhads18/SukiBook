@@ -13,6 +13,11 @@ The app ships in two modes, decided at build time by environment variables:
 | **Demo** | no Supabase env vars | seeded on-device data (localStorage) — perfect for public demos |
 | **Live** | `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` set | magic-link login, per-store cloud sync, RLS-secured data |
 
+> **In-app:** the dashboard's **Go Live** tab (owner-only) is the interactive
+> version of this document — a seven-step preflight checklist with live
+> detection of env vars, TLS, and your signed-in session, plus copyable
+> `.env` values and the full `schema.sql`.
+
 ---
 
 ## 0 · Prerequisites
