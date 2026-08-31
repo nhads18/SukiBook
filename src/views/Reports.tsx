@@ -15,7 +15,7 @@ import {
 import { useStore } from "../lib/store";
 import { AreaChart, Donut, HBars, Heatmap } from "../components/charts";
 import { Delta, Reveal, Seg } from "../components/ui";
-import { IconDownload, IconPrint } from "../components/Icons";
+import { IconDownload, IconPrint, IconShield } from "../components/Icons";
 
 type Period = "7" | "14" | "30";
 
@@ -23,6 +23,7 @@ export default function ReportsView() {
   const { db, settings } = useStore();
   const [period, setPeriod] = useState<Period>("14");
   const days = parseInt(period, 10);
+  const hideProfit = settings.role === "helper";
 
   const series = useMemo(() => dailySeries(db, days), [db, days]);
   const prev = useMemo(() => prevDailySeries(db, days), [db, days]);
@@ -132,13 +133,16 @@ export default function ReportsView() {
         <div className="flex flex-wrap gap-3">
           {[
             { label: "Revenue", value: peso0(totals.revenue), extra: <Delta pct={totals.delta} /> },
-            { label: "Profit", value: peso0(totals.profit), extra: null },
-            { label: "Margin", value: `${totals.margin.toFixed(1)}%`, extra: null },
-            { label: "Transactions", value: totals.count.toLocaleString(), extra: null },
-            { label: "Avg basket", value: peso0(totals.avg), extra: null },
+            { label: "Profit", value: hideProfit ? "₱ ••••" : peso0(totals.profit), extra: null, locked: hideProfit },
+            { label: "Margin", value: hideProfit ? "•••%" : `${totals.margin.toFixed(1)}%`, extra: null, locked: hideProfit },
+            { label: "Transactions", value: totals.count.toLocaleString(), extra: null, locked: false },
+            { label: "Avg basket", value: peso0(totals.avg), extra: null, locked: false },
           ].map((s, i) => (
-            <div key={i} className="min-w-36 flex-1 rounded-xl border border-line bg-card px-4 py-3.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">{s.label}</p>
+            <div key={i} className={`min-w-36 flex-1 rounded-xl border bg-card px-4 py-3.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${s.locked ? "border-line/70 opacity-80" : "border-line"}`}>
+              <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-ink-soft">
+                {s.label}
+                {s.locked && <IconShield className="h-3 w-3 text-mango-deep" />}
+              </p>
               <div className="mt-0.5 flex items-center gap-2">
                 <p className="tnum font-mono text-xl font-bold">{s.value}</p>
                 {s.extra}
@@ -190,9 +194,20 @@ export default function ReportsView() {
         </Reveal>
         <Reveal delay={140} className="lg:col-span-3">
           <div className="h-full rounded-xl border border-line bg-card p-5 shadow-sm">
-            <h2 className="font-display text-lg font-bold">Profit by category</h2>
+            <h2 className="flex items-center gap-2 font-display text-lg font-bold">
+              Profit by category
+              {hideProfit && <IconShield className="h-4 w-4 text-mango-deep" />}
+            </h2>
             <p className="mb-4 text-xs text-ink-soft">Where the kita comes from</p>
-            <HBars rows={catProfit} />
+            {hideProfit ? (
+              <div className="flex h-40 flex-col items-center justify-center rounded-lg border border-dashed border-line bg-paper/60 text-center">
+                <IconShield className="h-6 w-6 text-ink-soft/60" />
+                <p className="mt-2 text-xs font-bold text-ink-soft">Owner-only (spec §10)</p>
+                <p className="mt-0.5 max-w-52 text-[11px] text-ink-soft">Helpers record sales &amp; stock — profit margins stay with the owner.</p>
+              </div>
+            ) : (
+              <HBars rows={catProfit} />
+            )}
           </div>
         </Reveal>
       </div>

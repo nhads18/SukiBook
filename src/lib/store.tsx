@@ -30,12 +30,44 @@ import {
 } from "./supabase";
 import LoginGate from "../components/LoginGate";
 
+export type Role = "owner" | "helper" | "accountant";
+export type ThemeKey = "awning" | "barako" | "jeepney";
+
+export const THEMES: { key: ThemeKey; name: string; tagline: string; swatches: string[]; font: string; meta: string }[] = [
+  {
+    key: "awning",
+    name: "Awning",
+    tagline: "The classic tindahan — pine green & mango under the tarpaulin",
+    swatches: ["#103524", "#f6a81c", "#f1f2ea"],
+    font: '"Bricolage Grotesque", sans-serif',
+    meta: "#103524",
+  },
+  {
+    key: "barako",
+    name: "Barako",
+    tagline: "Kapeng barako counter — espresso, copper & latte paper",
+    swatches: ["#241812", "#cf7a2a", "#efe6d8"],
+    font: '"Fraunces", serif',
+    meta: "#241812",
+  },
+  {
+    key: "jeepney",
+    name: "Jeepney",
+    tagline: "Hand-painted livery — maroon body, chrome yellow signwriting",
+    swatches: ["#4a101f", "#f7c91f", "#f7f2e7"],
+    font: '"Alfa Slab One", sans-serif',
+    meta: "#4a101f",
+  },
+];
+
 export interface Settings {
   lang: Lang;
   storeName: string;
   owner: string;
   autoSync: boolean;
   sheetsSync: boolean;
+  role: Role;
+  theme: ThemeKey;
 }
 
 export interface Toast {
@@ -85,6 +117,8 @@ function loadInitial(): { db: DB; settings: Settings } {
     owner: "Aling Nena",
     autoSync: true,
     sheetsSync: true,
+    role: "owner",
+    theme: "awning",
   };
   try {
     const raw = localStorage.getItem(KEY);
@@ -136,6 +170,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       /* storage full — demo continues in memory */
     }
   }, [db, settings]);
+
+  /* Apply the active theme: re-skins every token + browser chrome color. */
+  useEffect(() => {
+    const theme = THEMES.some((t) => t.key === settings.theme) ? settings.theme : "awning";
+    document.documentElement.dataset.theme = theme;
+    const meta = document.querySelector('meta[name="theme-color"]');
+    const found = THEMES.find((t) => t.key === theme);
+    if (meta && found) meta.setAttribute("content", found.meta);
+  }, [settings.theme]);
 
   const notify = useCallback((kind: Toast["kind"], title: string, sub?: string) => {
     const id = ++toastId.current;

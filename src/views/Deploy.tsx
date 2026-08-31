@@ -163,23 +163,23 @@ function ArchDiagram() {
     <svg viewBox="0 0 760 250" className="w-full">
       <defs>
         <marker id="arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-          <path d="M0,0 L8,4 L0,8 z" fill="#103524" />
+          <path d="M0,0 L8,4 L0,8 z" fill="var(--color-pine)" />
         </marker>
       </defs>
       {/* nodes */}
       {[
-        { x: 20, y: 30, w: 150, h: 62, t1: "Android app", t2: "Phase 2 · same sync core", c: "#103524" },
-        { x: 20, y: 158, w: 150, h: 62, t1: "Web dashboard", t2: "Vercel · React + Vite", c: "#103524" },
-        { x: 300, y: 94, w: 170, h: 62, t1: "Supabase", t2: "auth · RLS · PostgREST", c: "#f6a81c" },
-        { x: 590, y: 30, w: 150, h: 62, t1: "PostgreSQL", t2: "source of truth", c: "#103524" },
-        { x: 590, y: 158, w: 150, h: 62, t1: "Storage bucket", t2: "product photos", c: "#103524" },
+        { x: 20, y: 30, w: 150, h: 62, t1: "Android app", t2: "Phase 2 · same sync core", c: "var(--color-pine)" },
+        { x: 20, y: 158, w: 150, h: 62, t1: "Web dashboard", t2: "Vercel · React + Vite", c: "var(--color-pine)" },
+        { x: 300, y: 94, w: 170, h: 62, t1: "Supabase", t2: "auth · RLS · PostgREST", c: "var(--color-mango)" },
+        { x: 590, y: 30, w: 150, h: 62, t1: "PostgreSQL", t2: "source of truth", c: "var(--color-pine)" },
+        { x: 590, y: 158, w: 150, h: 62, t1: "Storage bucket", t2: "product photos", c: "var(--color-pine)" },
       ].map((n, i) => (
         <g key={i}>
           <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="10" fill={n.c} />
-          <text x={n.x + n.w / 2} y={n.y + 27} textAnchor="middle" fill={n.c === "#f6a81c" ? "#0b271b" : "#f6a81c"} fontSize="14" fontWeight="800" fontFamily="Bricolage Grotesque, sans-serif">
+          <text x={n.x + n.w / 2} y={n.y + 27} textAnchor="middle" fill={n.c === "var(--color-mango)" ? "var(--color-pine-deep)" : "var(--color-mango)"} fontSize="14" fontWeight="800" fontFamily="Bricolage Grotesque, sans-serif">
             {n.t1}
           </text>
-          <text x={n.x + n.w / 2} y={n.y + 45} textAnchor="middle" fill={n.c === "#f6a81c" ? "#0b271b" : "#fcfcf7"} opacity="0.75" fontSize="10" fontFamily="Spline Sans Mono, monospace">
+          <text x={n.x + n.w / 2} y={n.y + 45} textAnchor="middle" fill={n.c === "var(--color-mango)" ? "var(--color-pine-deep)" : "var(--color-card)"} opacity="0.75" fontSize="10" fontFamily="Spline Sans Mono, monospace">
             {n.t2}
           </text>
         </g>
@@ -189,20 +189,20 @@ function ArchDiagram() {
         { x: 300, y: 200, w: 170, h: 34, t: "Phase 2: Semaphore SMS · Sheets mirror" },
       ].map((n, i) => (
         <g key={i}>
-          <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="17" fill="none" stroke="#103524" strokeWidth="1.5" strokeDasharray="4 4" />
-          <text x={n.x + n.w / 2} y={n.y + 21} textAnchor="middle" fill="#4c5c51" fontSize="10" fontWeight="700" fontFamily="Instrument Sans, sans-serif">
+          <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="17" fill="none" stroke="var(--color-pine)" strokeWidth="1.5" strokeDasharray="4 4" />
+          <text x={n.x + n.w / 2} y={n.y + 21} textAnchor="middle" fill="var(--color-ink-soft)" fontSize="10" fontWeight="700" fontFamily="Instrument Sans, sans-serif">
             {n.t}
           </text>
         </g>
       ))}
       {/* connectors */}
-      <path d="M170,61 C240,61 240,115 300,120" fill="none" stroke="#103524" strokeWidth="2" markerEnd="url(#arr)" className="flow-dash" />
-      <path d="M170,189 C240,189 240,135 300,130" fill="none" stroke="#103524" strokeWidth="2" markerEnd="url(#arr)" className="flow-dash" />
-      <path d="M470,110 C530,95 540,61 590,61" fill="none" stroke="#103524" strokeWidth="2" markerEnd="url(#arr)" className="flow-dash" />
-      <path d="M470,140 C530,155 540,189 590,189" fill="none" stroke="#c9a24b" strokeWidth="2" strokeDasharray="5 5" markerEnd="url(#arr)" className="flow-dash" />
-      <path d="M385,156 L385,200" fill="none" stroke="#c9a24b" strokeWidth="1.5" strokeDasharray="4 4" />
-      <text x="498" y="84" fontSize="10" fontFamily="Spline Sans Mono, monospace" fill="#4c5c51">RLS-secured</text>
-      <text x="498" y="176" fontSize="10" fontFamily="Spline Sans Mono, monospace" fill="#c9a24b">debounced 1.5 s</text>
+      <path d="M170,61 C240,61 240,115 300,120" fill="none" stroke="var(--color-pine)" strokeWidth="2" markerEnd="url(#arr)" className="flow-dash" />
+      <path d="M170,189 C240,189 240,135 300,130" fill="none" stroke="var(--color-pine)" strokeWidth="2" markerEnd="url(#arr)" className="flow-dash" />
+      <path d="M470,110 C530,95 540,61 590,61" fill="none" stroke="var(--color-pine)" strokeWidth="2" markerEnd="url(#arr)" className="flow-dash" />
+      <path d="M470,140 C530,155 540,189 590,189" fill="none" stroke="var(--color-mango-deep)" strokeWidth="2" strokeDasharray="5 5" markerEnd="url(#arr)" className="flow-dash" />
+      <path d="M385,156 L385,200" fill="none" stroke="var(--color-mango-deep)" strokeWidth="1.5" strokeDasharray="4 4" />
+      <text x="498" y="84" fontSize="10" fontFamily="Spline Sans Mono, monospace" fill="var(--color-ink-soft)">RLS-secured</text>
+      <text x="498" y="176" fontSize="10" fontFamily="Spline Sans Mono, monospace" fill="var(--color-mango-deep)">debounced 1.5 s</text>
     </svg>
   );
 }

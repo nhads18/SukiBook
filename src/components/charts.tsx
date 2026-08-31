@@ -101,8 +101,8 @@ export function AreaChart({
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full">
         <defs>
           <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#103524" stopOpacity="0.28" />
-            <stop offset="100%" stopColor="#103524" stopOpacity="0.02" />
+            <stop offset="0%" stopColor="var(--color-pine)" stopOpacity="0.28" />
+            <stop offset="100%" stopColor="var(--color-pine)" stopOpacity="0.02" />
           </linearGradient>
         </defs>
         {[0.25, 0.5, 0.75].map((f) => (
@@ -112,20 +112,20 @@ export function AreaChart({
             x2={W - pad}
             y1={y(max * f)}
             y2={y(max * f)}
-            stroke="#e0e2d2"
+            stroke="var(--color-line)"
             strokeDasharray="3 5"
           />
         ))}
-        <line x1={pad} x2={W - pad} y1={H - 24} y2={H - 24} stroke="#cdd0be" />
+        <line x1={pad} x2={W - pad} y1={H - 24} y2={H - 24} stroke="var(--color-line)" />
         {prev && (
-          <path d={line(prev)} fill="none" stroke="#c9a24b" strokeWidth="2" strokeDasharray="5 5" opacity="0.8" />
+          <path d={line(prev)} fill="none" stroke="var(--color-mango-deep)" strokeWidth="2" strokeDasharray="5 5" opacity="0.8" />
         )}
         <path d={area} fill="url(#areaFill)" />
-        <path d={line(series)} fill="none" stroke="#103524" strokeWidth="2.4" strokeLinejoin="round" />
+        <path d={line(series)} fill="none" stroke="var(--color-pine)" strokeWidth="2.4" strokeLinejoin="round" />
         {hv && (
           <>
-            <line x1={x(hov!)} x2={x(hov!)} y1={20} y2={H - 24} stroke="#f6a81c" strokeWidth="1.5" />
-            <circle cx={x(hov!)} cy={y(hv.revenue)} r="5" fill="#f6a81c" stroke="#103524" strokeWidth="2" />
+            <line x1={x(hov!)} x2={x(hov!)} y1={20} y2={H - 24} stroke="var(--color-mango)" strokeWidth="1.5" />
+            <circle cx={x(hov!)} cy={y(hv.revenue)} r="5" fill="var(--color-mango)" stroke="var(--color-pine)" strokeWidth="2" />
           </>
         )}
       </svg>
@@ -245,7 +245,9 @@ export function Heatmap({ grid }: { grid: number[][] }) {
                 className="h-6 cursor-pointer rounded-[3px] transition-transform hover:scale-110 hover:ring-1 hover:ring-mango"
                 style={{
                   background:
-                    v === 0 ? "#edeee2" : `rgba(16,53,36,${0.14 + (v / max) * 0.86})`,
+                    v === 0
+                      ? "var(--color-paper)"
+                      : `color-mix(in srgb, var(--color-pine) ${Math.round(14 + (v / max) * 86)}%, var(--color-card))`,
                 }}
               />
             ))}
@@ -254,8 +256,12 @@ export function Heatmap({ grid }: { grid: number[][] }) {
       </div>
       <div className="mt-3 flex items-center gap-2 text-[10px] font-medium text-ink-soft">
         Less
-        {[0.12, 0.3, 0.5, 0.72, 1].map((a) => (
-          <span key={a} className="h-3 w-5 rounded-[3px]" style={{ background: `rgba(16,53,36,${a})` }} />
+        {[12, 30, 50, 72, 100].map((a) => (
+          <span
+            key={a}
+            className="h-3 w-5 rounded-[3px]"
+            style={{ background: `color-mix(in srgb, var(--color-pine) ${a}%, var(--color-card))` }}
+          />
         ))}
         More
         <span className="ml-3 rounded bg-mango-soft px-2 py-0.5 font-semibold text-mango-deep">
@@ -297,7 +303,7 @@ export function HBars({
               className="width-grow h-full rounded-full"
               style={{
                 width: `${(r.value / max) * 100}%`,
-                background: r.color ?? "#103524",
+                background: r.color ?? "var(--color-pine)",
                 animationDelay: `${i * 70}ms`,
               }}
             />

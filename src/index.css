@@ -38,6 +38,45 @@ body {
   color: var(--color-pine-deep);
 }
 
+/* ================= themes =================
+   The whole app is built on semantic tokens, so redefining the
+   variables on <html data-theme> re-skins everything — sidebar,
+   masthead, charts, phone preview, login gate.                  */
+
+/* Awning (default) — the classic tindahan tarpaulin, defined in @theme. */
+
+/* Barako — kapeng barako counter: espresso, copper, latte paper. */
+[data-theme="barako"] {
+  --color-ink: #271c13;
+  --color-ink-soft: #6f6050;
+  --color-paper: #efe6d8;
+  --color-card: #faf5ea;
+  --color-line: #ddd1ba;
+  --color-pine: #241812;
+  --color-pine-deep: #170e09;
+  --color-pine-soft: #e9dfcb;
+  --color-mango: #cf7a2a;
+  --color-mango-deep: #a45a12;
+  --color-mango-soft: #f3e2c8;
+  --font-display: "Fraunces", "Instrument Sans", serif;
+}
+
+/* Jeepney — hand-painted livery: maroon body, chrome yellow. */
+[data-theme="jeepney"] {
+  --color-ink: #2c1f1a;
+  --color-ink-soft: #6e5f52;
+  --color-paper: #f7f2e7;
+  --color-card: #fffdf4;
+  --color-line: #e3dbc4;
+  --color-pine: #4a101f;
+  --color-pine-deep: #310713;
+  --color-pine-soft: #f3e0dc;
+  --color-mango: #f7c91f;
+  --color-mango-deep: #d3a30b;
+  --color-mango-soft: #f9ecc0;
+  --font-display: "Alfa Slab One", "Instrument Sans", sans-serif;
+}
+
 .tnum {
   font-variant-numeric: tabular-nums;
 }
