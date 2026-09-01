@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { memo, useRef, useState } from "react";
 import { fmtDay, peso0, type DayAgg } from "../lib/data";
 
 /* ------------------------------- Bars ------------------------------ */
@@ -204,6 +204,22 @@ export function Donut({
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+/** Memoized cell — the grid never re-renders its 119 cells on hover. */
+const HeatCell = memo(function HeatCell({ day, hour, value, max }: { day: string; hour: number; value: number; max: number }) {
+  return (
+    <div
+      title={`${day} ${hour}:00 — ${peso0(value)}`}
+      className="h-6 cursor-pointer rounded-[3px] transition-transform hover:scale-110 hover:ring-1 hover:ring-mango"
+      style={{
+        background:
+          value === 0
+            ? "var(--color-paper)"
+            : `color-mix(in srgb, var(--color-pine) ${Math.round(14 + (value / max) * 86)}%, var(--color-card))`,
+      }}
+    />
+  );
+});
+
 export function Heatmap({ grid }: { grid: number[][] }) {
   const max = Math.max(...grid.flat(), 1);
   const hours = Array.from({ length: 17 }, (_, i) => i + 5);
@@ -220,17 +236,7 @@ export function Heatmap({ grid }: { grid: number[][] }) {
           <div key={r} className="contents">
             <div className="flex items-center font-mono text-[10px] font-semibold text-ink-soft">{DAYS[r]}</div>
             {row.map((v, c) => (
-              <div
-                key={c}
-                title={`${DAYS[r]} ${hours[c]}:00 — ${peso0(v)}`}
-                className="h-6 cursor-pointer rounded-[3px] transition-transform hover:scale-110 hover:ring-1 hover:ring-mango"
-                style={{
-                  background:
-                    v === 0
-                      ? "var(--color-paper)"
-                      : `color-mix(in srgb, var(--color-pine) ${Math.round(14 + (v / max) * 86)}%, var(--color-card))`,
-                }}
-              />
+              <HeatCell key={c} day={DAYS[r]} hour={hours[c]} value={v} max={max} />
             ))}
           </div>
         ))}

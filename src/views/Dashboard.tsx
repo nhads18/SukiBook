@@ -101,7 +101,7 @@ export default function Dashboard({ go }: { go?: (v: string) => void }) {
   return (
     <div className="space-y-6">
       {/* ---- store masthead: the counter itself ---- */}
-      <div className="relative overflow-hidden rounded-2xl border border-pine-deep/40 bg-pine text-card shadow-[0_24px_60px_-24px_rgba(11,39,27,0.55)]">
+      <div className="@container relative overflow-hidden rounded-overlay border border-pine-deep/40 bg-pine text-card shadow-elev-3">
         <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(720px 320px at 88% 0%, rgba(246,168,28,0.20), transparent 60%)" }} />
         <div className="stripes-soft absolute inset-x-0 top-0 h-1.5" />
         <p className="pointer-events-none absolute -bottom-14 right-0 select-none font-display text-[190px] font-extrabold leading-none text-card/[0.05]">₱</p>
@@ -125,9 +125,9 @@ export default function Dashboard({ go }: { go?: (v: string) => void }) {
           </span>
         </div>
 
-        <div className="relative grid gap-7 px-5 py-6 md:grid-cols-12 md:px-8 md:py-7">
+        <div className="relative grid gap-7 px-5 py-6 @md:grid-cols-12 @md:px-8 @md:py-7">
           {/* the day's numbers, big */}
-          <div className="md:col-span-7">
+          <div className="@md:col-span-7">
             <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-mango">
               {new Date(clock).toLocaleDateString("en-PH", { weekday: "long", month: "long", day: "numeric" })}
             </p>
@@ -136,7 +136,7 @@ export default function Dashboard({ go }: { go?: (v: string) => void }) {
               <span className="text-mango">.</span>
             </h1>
             <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.24em] text-card/60">{t("totalSales")}</p>
-            <p className="tnum font-display text-6xl font-extrabold leading-none tracking-tight text-mango md:text-7xl">
+            <p className="tnum font-display text-[clamp(2.7rem,8vw,4.75rem)] font-extrabold leading-none tracking-tight text-mango">
               <CountUp value={stats.today.total} fmt={peso0} />
             </p>
             <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
@@ -162,7 +162,7 @@ export default function Dashboard({ go }: { go?: (v: string) => void }) {
           </div>
 
           {/* clock, open state, quick actions */}
-          <div className="flex flex-col justify-between gap-6 md:col-span-5">
+          <div className="flex flex-col justify-between gap-6 @md:col-span-5">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="tnum font-mono text-4xl font-bold tracking-tight">{fmtTime(clock)}</p>
@@ -179,19 +179,19 @@ export default function Dashboard({ go }: { go?: (v: string) => void }) {
             <div className="grid grid-cols-5 gap-2">
               <button
                 onClick={() => go?.("sales")}
-                className="btn-press col-span-5 flex items-center justify-center gap-2.5 rounded-xl bg-mango py-3.5 font-display text-sm font-extrabold uppercase tracking-wide text-pine-deep shadow-lg shadow-mango/25 transition hover:bg-mango-deep md:col-span-3"
+                className="btn-press col-span-5 flex items-center justify-center gap-2.5 rounded-xl bg-mango py-3.5 font-display text-sm font-extrabold uppercase tracking-wide text-pine-deep shadow-lg shadow-mango/25 transition hover:bg-mango-deep @md:col-span-3"
               >
                 <IconBasket className="h-5 w-5" /> {t("recordSale")}
               </button>
               <button
                 onClick={() => go?.("stock")}
-                className="btn-press col-span-2 flex items-center justify-center gap-2 rounded-xl border border-card/25 py-3.5 text-xs font-extrabold uppercase tracking-wide text-card transition hover:border-mango hover:text-mango md:col-span-1 md:flex-col md:gap-1 md:text-[10px]"
+                className="btn-press col-span-2 flex items-center justify-center gap-2 rounded-xl border border-card/25 py-3.5 text-xs font-extrabold uppercase tracking-wide text-card transition hover:border-mango hover:text-mango @md:col-span-1 @md:flex-col @md:gap-1 @md:text-[10px]"
               >
                 <IconUp className="h-4 w-4" /> Stock
               </button>
               <button
                 onClick={() => go?.("utang")}
-                className="btn-press col-span-3 flex items-center justify-center gap-2 rounded-xl border border-card/25 py-3.5 text-xs font-extrabold uppercase tracking-wide text-card transition hover:border-mango hover:text-mango md:col-span-1 md:flex-col md:gap-1 md:text-[10px]"
+                className="btn-press col-span-3 flex items-center justify-center gap-2 rounded-xl border border-card/25 py-3.5 text-xs font-extrabold uppercase tracking-wide text-card transition hover:border-mango hover:text-mango @md:col-span-1 @md:flex-col @md:gap-1 @md:text-[10px]"
               >
                 <IconPeso className="h-4 w-4" /> Utang
               </button>

@@ -220,7 +220,7 @@ export function ToastHost({ toasts }: { toasts: Toast[] }) {
     info: <IconSync className="h-4 w-4" />,
   } as const;
   return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-[60] flex w-72 flex-col gap-2">
+    <div role="status" aria-live="polite" className="safe-b pointer-events-none fixed bottom-4 right-4 z-[60] flex w-72 flex-col gap-2">
       {toasts.map((t) => (
         <div key={t.id} className={`toast-in flex items-start gap-2.5 rounded-lg border px-3.5 py-3 shadow-lg ${tint[t.kind]}`}>
           <span className="mt-0.5 shrink-0">{icon[t.kind]}</span>

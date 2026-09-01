@@ -40,7 +40,7 @@ export default function LoginGate({
       </div>
 
       <div className="rise relative w-full max-w-md">
-        <div className="overflow-hidden rounded-2xl border border-card/10 bg-card shadow-[0_30px_70px_-20px_rgba(0,0,0,0.55)]">
+        <div className="overflow-hidden rounded-overlay border border-card/10 bg-card shadow-elev-3">
           <div className="stripes-soft h-2" />
           <div className="px-8 py-9">
             <div className="flex items-center gap-3">
