@@ -5,13 +5,14 @@ import { CountUp, Seg, Stepper } from "../components/ui";
 import { CategoryGlyph, IconBasket, IconCheck, IconSearch, IconTrash } from "../components/Icons";
 
 export default function SalesView() {
-  const { db, t, recordSale, notify } = useStore();
+  const { db, t, recordSale, notify, addCustomer } = useStore();
 
   /* POS state */
   const [query, setQuery] = useState("");
   const [lines, setLines] = useState<Record<string, number>>({});
   const [payment, setPayment] = useState<Payment>("cash");
   const [customerId, setCustomerId] = useState("");
+  const [newSuki, setNewSuki] = useState({ name: "", phone: "", open: false });
 
   /* ledger filters */
   const [payFilter, setPayFilter] = useState<"all" | Payment>("all");
@@ -139,12 +140,54 @@ export default function SalesView() {
                     ]}
                   />
                   {payment === "utang" && (
-                    <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className="field w-44 py-1.5 text-xs">
-                      <option value="">— select suki —</option>
-                      {db.customers.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <select
+                        value={newSuki.open ? "__new" : customerId}
+                        onChange={(e) => {
+                          if (e.target.value === "__new") setNewSuki((s) => ({ ...s, open: true }));
+                          else {
+                            setCustomerId(e.target.value);
+                            setNewSuki((s) => ({ ...s, open: false }));
+                          }
+                        }}
+                        className="field w-44 py-1.5 text-xs"
+                      >
+                        <option value="">— select suki —</option>
+                        {db.customers.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                        <option value="__new">+ Bagong suki…</option>
+                      </select>
+                      {newSuki.open && (
+                        <div className="rise flex items-center gap-1.5">
+                          <input
+                            autoFocus
+                            value={newSuki.name}
+                            onChange={(e) => setNewSuki((s) => ({ ...s, name: e.target.value }))}
+                            placeholder="Pangalan"
+                            className="field w-32 px-2 py-1.5 text-xs"
+                          />
+                          <input
+                            value={newSuki.phone}
+                            onChange={(e) => setNewSuki((s) => ({ ...s, phone: e.target.value }))}
+                            placeholder="09…"
+                            className="field w-24 px-2 py-1.5 text-xs"
+                          />
+                          <button
+                            onClick={() => {
+                              if (!newSuki.name.trim()) return;
+                              const id = addCustomer(newSuki.name.trim(), newSuki.phone.trim() || "—");
+                              setCustomerId(id);
+                              setNewSuki({ name: "", phone: "", open: false });
+                            }}
+                            disabled={!newSuki.name.trim()}
+                            className="btn-press rounded-md bg-pine px-2.5 py-1.5 text-xs font-extrabold text-mango transition enabled:hover:bg-pine-deep disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Save
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   )}
                   <span className="tnum ml-auto font-mono text-xl font-extrabold">
                     <CountUp value={total} fmt={peso} />

@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { useStore, THEMES } from "../lib/store";
 import { Field, Modal, Reveal, Seg } from "../components/ui";
-import { IconCheck, IconGear, IconLock, IconPalette, IconShield, IconSheets, IconSync, IconUsers } from "../components/Icons";
+import { IconCheck, IconGear, IconLock, IconPalette, IconPlus, IconShield, IconSheets, IconSync, IconTrash, IconUsers } from "../components/Icons";
 import type { Lang } from "../lib/i18n";
+import type { StaffRole } from "../lib/data";
 
 function Switch({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   return (
@@ -106,8 +107,10 @@ function SecurityCard({ mode, phones }: { mode: "demo" | "cloud" | "gate"; phone
 }
 
 export default function SettingsView() {
-  const { db, t, settings, updateSettings, notify, resetDemo, cloud, logout, auth, signOut, lockNow } = useStore();
+  const { db, t, settings, updateSettings, notify, resetDemo, cloud, logout, auth, signOut, lockNow, addStaff, updateStaff, removeStaff } = useStore();
   const [resetOpen, setResetOpen] = useState(false);
+  const [staffForm, setStaffForm] = useState({ name: "", phone: "", role: "helper" as StaffRole });
+  const [confirmDel, setConfirmDel] = useState<string | null>(null);
 
   const TEAM = [
     { name: settings.owner, role: "Owner", desc: "Full access — reports, profit, deployment & team", tint: "bg-mango text-pine-deep" },
@@ -188,31 +191,131 @@ export default function SettingsView() {
               })}
             </div>
 
+            {/* live roster — owner pinned, staff from the ledger */}
             <ul className="mt-4 space-y-2.5">
-              {TEAM.map((m) => {
-                const key = m.role.toLowerCase() as typeof settings.role;
-                const isYou = settings.role === key;
+              <li className="flex items-center gap-3 rounded-lg border border-mango/60 bg-mango-soft/50 px-3.5 py-2.5">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-mango font-display text-xs font-extrabold text-pine-deep">
+                  {settings.owner.split(" ").map((w) => w[0]).slice(0, 2).join("")}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold">
+                    {settings.owner}
+                    <span className="ml-2 rounded bg-pine px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-mango">you</span>
+                  </p>
+                  <p className="truncate text-[11px] text-ink-soft">Full access — reports, profit, deploy &amp; team</p>
+                </div>
+                <span className="rounded-full bg-mango px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-pine-deep">Owner</span>
+              </li>
+
+              {(db.staff ?? []).map((s) => {
+                const tint = s.role === "helper" ? "bg-leaf-soft text-leaf" : "bg-gcash-soft text-gcash";
                 return (
-                  <li key={m.name} className={`flex items-center gap-3 rounded-lg border px-3.5 py-2.5 transition ${isYou ? "border-mango/60 bg-mango-soft/50" : "border-line bg-paper/60 hover:bg-pine-soft/50"}`}>
-                    <span className={`flex h-9 w-9 items-center justify-center rounded-full font-display text-xs font-extrabold ${m.tint}`}>
-                      {m.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}
+                  <li
+                    key={s.id}
+                    className={`flex items-center gap-3 rounded-lg border px-3.5 py-2.5 transition ${
+                      s.active ? "border-line bg-paper/60 hover:bg-pine-soft/50" : "border-line bg-paper/30 opacity-55"
+                    }`}
+                  >
+                    <span className={`flex h-9 w-9 items-center justify-center rounded-full font-display text-xs font-extrabold ${tint}`}>
+                      {s.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold">
-                        {m.name}
-                        {isYou && <span className="ml-2 rounded bg-pine px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-mango">you · this session</span>}
+                        {s.name}
+                        {!s.active && <span className="ml-2 rounded bg-line px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-ink-soft">off duty</span>}
                       </p>
-                      <p className="truncate text-[11px] text-ink-soft">{m.desc}</p>
+                      <p className="truncate font-mono text-[11px] text-ink-soft">
+                        {s.phone || "—"} · joined {new Date(s.addedAt).toLocaleDateString("en-PH", { month: "short", day: "numeric" })}
+                      </p>
                     </div>
-                    <span className={`rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide ${m.tint}`}>{m.role}</span>
+                    <span className={`rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide ${tint}`}>{s.role}</span>
+                    <button
+                      onClick={() => {
+                        updateStaff(s.id, { active: !s.active });
+                        notify("info", s.active ? "Staff off duty" : "Staff back on duty", s.name);
+                      }}
+                      title={s.active ? "Deactivate — hides from the counter rotation" : "Activate"}
+                      className={`btn-press relative h-5 w-9 shrink-0 rounded-full transition ${s.active ? "bg-leaf" : "bg-line"}`}
+                      aria-label={s.active ? "Deactivate staff" : "Activate staff"}
+                    >
+                      <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-card shadow transition-all ${s.active ? "left-[18px]" : "left-0.5"}`} />
+                    </button>
+                    {confirmDel === s.id ? (
+                      <button
+                        onClick={() => {
+                          removeStaff(s.id);
+                          setConfirmDel(null);
+                        }}
+                        className="btn-press shrink-0 rounded-md bg-cherry px-2 py-1.5 text-[10px] font-extrabold uppercase text-cherry-soft"
+                      >
+                        Sure?
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDel(s.id)}
+                        title="Remove from team"
+                        className="btn-press shrink-0 rounded-md p-1.5 text-ink-soft transition hover:bg-cherry-soft hover:text-cherry"
+                        aria-label="Remove staff"
+                      >
+                        <IconTrash className="h-4 w-4" />
+                      </button>
+                    )}
                   </li>
                 );
               })}
+
+              {(db.staff ?? []).length === 0 && (
+                <li className="rounded-lg border border-dashed border-line px-4 py-5 text-center text-xs text-ink-soft">
+                  Wala pang staff — idagdag ang kasama sa counter sa baba.
+                </li>
+              )}
             </ul>
+
+            {/* add staff */}
+            <div className="mt-4 rounded-xl border border-dashed border-pine/30 bg-pine-soft/40 p-4">
+              <p className="mb-2.5 flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-widest text-pine">
+                <IconPlus className="h-3.5 w-3.5" /> Add staff
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <input
+                  value={staffForm.name}
+                  onChange={(e) => setStaffForm((f) => ({ ...f, name: e.target.value }))}
+                  placeholder="Pangalan (e.g. Junjun)"
+                  className="field min-w-36 flex-1 px-3 py-2 text-xs"
+                />
+                <input
+                  value={staffForm.phone}
+                  onChange={(e) => setStaffForm((f) => ({ ...f, phone: e.target.value }))}
+                  placeholder="09…"
+                  className="field w-32 px-3 py-2 text-xs"
+                />
+                <select
+                  value={staffForm.role}
+                  onChange={(e) => setStaffForm((f) => ({ ...f, role: e.target.value as StaffRole }))}
+                  className="field w-32 px-2 py-2 text-xs"
+                >
+                  <option value="helper">Helper</option>
+                  <option value="accountant">Accountant</option>
+                </select>
+                <button
+                  onClick={() => {
+                    if (staffForm.name.trim()) {
+                      addStaff(staffForm.name.trim(), staffForm.role, staffForm.phone.trim());
+                      setStaffForm({ name: "", phone: "", role: "helper" });
+                    }
+                  }}
+                  disabled={!staffForm.name.trim()}
+                  className="btn-press rounded-lg bg-pine px-4 py-2 text-xs font-extrabold uppercase tracking-wide text-mango transition enabled:hover:bg-pine-deep disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+
             <p className="mt-3 flex items-start gap-2 text-[11px] leading-relaxed text-ink-soft">
               <IconShield className="mt-0.5 h-3.5 w-3.5 shrink-0 text-pine" />
-              Demo switches the session role instantly. In cloud mode, per-user roles are enforced server-side via a
-              <span className="mx-1 font-mono font-bold text-pine">store_members</span>table + RLS (Phase 2).
+              Deactivated staff can't open the register. In cloud mode, per-user roles are enforced server-side via a
+              <span className="mx-1 font-mono font-bold text-pine">store_members</span>table + RLS.
             </p>
           </div>
         </Reveal>

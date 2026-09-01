@@ -17,6 +17,8 @@ import {
   type Payment,
   type Product,
   type Sale,
+  type Staff,
+  type StaffRole,
 } from "./data";
 import { STRINGS, type Lang, type StrKey } from "./i18n";
 import {
@@ -107,12 +109,16 @@ interface StoreCtx {
   recordSale: (input: SaleInput) => number;
   recordPayment: (customerId: string, amount: number) => void;
   addUtang: (customerId: string, amount: number, note?: string) => void;
-  addCustomer: (name: string, phone: string) => void;
+  /** Adds a suki and returns the new id so pickers can auto-select it. */
+  addCustomer: (name: string, phone: string) => string;
   updateProduct: (id: string, patch: Partial<Product>) => void;
   addProduct: (p: Omit<Product, "id">) => void;
   addStock: (id: string, qty: number) => void;
   updateSettings: (patch: Partial<Settings>) => void;
   resetDemo: () => void;
+  addStaff: (name: string, role: StaffRole, phone: string) => void;
+  updateStaff: (id: string, patch: Partial<Omit<Staff, "id">>) => void;
+  removeStaff: (id: string) => void;
   cloud: { configured: boolean; mode: "demo" | "cloud" | "gate"; email: string | null };
   login: (email: string) => Promise<void>;
   logout: () => void;
@@ -146,7 +152,8 @@ function loadInitial(): { db: DB; settings: Settings } {
     if (raw) {
       const parsed = JSON.parse(raw) as { db: DB; settings: Settings };
       if (parsed?.db?.anchor === todayAnchor()) {
-        return { db: parsed.db, settings: { ...defaults, ...parsed.settings } };
+        /* Backfill for snapshots saved before the staff ledger existed. */
+        return { db: { ...parsed.db, staff: parsed.db.staff ?? [] }, settings: { ...defaults, ...parsed.settings } };
       }
     }
   } catch {
@@ -453,13 +460,50 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
 
   const addCustomer = useCallback(
-    (name: string, phone: string) => {
+    (name: string, phone: string): string => {
+      const id = uid();
       setDb((prev) => ({
         ...prev,
-        customers: [...prev.customers, { id: uid(), name, phone, balance: 0, history: [] }],
+        customers: [...prev.customers, { id, name, phone, balance: 0, history: [] }],
       }));
       markSync();
       notify("ok", "Suki added", name);
+      return id;
+    },
+    [markSync, notify],
+  );
+
+  /* ---------------- staff management ---------------- */
+
+  const addStaff = useCallback(
+    (name: string, role: StaffRole, phone: string) => {
+      setDb((prev) => ({
+        ...prev,
+        staff: [...(prev.staff ?? []), { id: uid(), name, phone, role, active: true, addedAt: Date.now() }],
+      }));
+      markSync();
+      notify("ok", "Staff added", `${name} · ${role}`);
+    },
+    [markSync, notify],
+  );
+
+  const updateStaff = useCallback(
+    (id: string, patch: Partial<Omit<Staff, "id">>) => {
+      setDb((prev) => ({
+        ...prev,
+        staff: (prev.staff ?? []).map((s) => (s.id === id ? { ...s, ...patch } : s)),
+      }));
+      markSync();
+    },
+    [markSync],
+  );
+
+  const removeStaff = useCallback(
+    (id: string) => {
+      const gone = dbRef.current.staff?.find((s) => s.id === id);
+      setDb((prev) => ({ ...prev, staff: (prev.staff ?? []).filter((s) => s.id !== id) }));
+      markSync();
+      if (gone) notify("info", "Staff removed", gone.name);
     },
     [markSync, notify],
   );
@@ -552,6 +596,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     db, settings, toasts, sync, t, notify,
     recordSale, recordPayment, addUtang, addCustomer,
     updateProduct, addProduct, addStock, updateSettings, resetDemo,
+    addStaff, updateStaff, removeStaff,
     cloud, login, logout, continueDemo,
     auth, authUsers, authRegister, authSignIn, authUnlock, lockNow, signOut, resetAccountAction,
   };
