@@ -62,6 +62,25 @@ export function Bars({
   );
 }
 
+/* Catmull-Rom → cubic Bézier: smooth, monotone-ish curves through real points. */
+function smoothPath(pts: [number, number][]): string {
+  if (pts.length === 0) return "";
+  if (pts.length === 1) return `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+  let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[Math.min(pts.length - 1, i + 2)];
+    const c1x = p1[0] + (p2[0] - p0[0]) / 6;
+    const c1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const c2x = p2[0] - (p3[0] - p1[0]) / 6;
+    const c2y = p2[1] - (p3[1] - p1[1]) / 6;
+    d += ` C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+  }
+  return d;
+}
+
 /* ----------------------------- AreaChart --------------------------- */
 
 export function AreaChart({
@@ -81,8 +100,7 @@ export function AreaChart({
   const max = Math.max(...series.map((s) => s.revenue), ...(prev ?? []).map((s) => s.revenue), 1);
   const x = (i: number) => pad + (i / Math.max(series.length - 1, 1)) * (W - pad * 2);
   const y = (v: number) => H - 26 - (v / max) * (H - 52);
-  const line = (arr: DayAgg[]) =>
-    arr.map((s, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(s.revenue).toFixed(1)}`).join(" ");
+  const line = (arr: DayAgg[]) => smoothPath(arr.map((s, i) => [x(i), y(s.revenue)] as [number, number]));
   const area = `${line(series)} L${x(series.length - 1).toFixed(1)},${H - 24} L${x(0).toFixed(1)},${H - 24} Z`;
 
   const onMove = (e: React.MouseEvent) => {
@@ -112,7 +130,7 @@ export function AreaChart({
         <line x1={pad} x2={W - pad} y1={H - 24} y2={H - 24} stroke="#cdd0be" />
         {prev && <path d={line(prev)} fill="none" stroke="#c9a24b" strokeWidth="2" strokeDasharray="5 5" opacity="0.8" />}
         <path d={area} fill="url(#areaFill)" />
-        <path d={line(series)} fill="none" stroke="var(--color-pine)" strokeWidth="2.4" strokeLinejoin="round" />
+        <path d={line(series)} pathLength={1} className="draw-in" fill="none" stroke="var(--color-pine)" strokeWidth="2.4" strokeLinejoin="round" />
         {hv && (
           <>
             <line x1={x(hov!)} x2={x(hov!)} y1={20} y2={H - 24} stroke="var(--color-mango)" strokeWidth="1.5" />

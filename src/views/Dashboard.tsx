@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   catMeta,
   dailySeries,
@@ -14,7 +14,7 @@ import {
 import { useStore } from "../lib/store";
 import { Bars, Donut, HBars } from "../components/charts";
 import { CountUp, Delta, Reveal } from "../components/ui";
-import { CategoryGlyph, IconAlert, IconBasket, IconDown, IconPeso, IconUp } from "../components/Icons";
+import { CategoryGlyph, IconAlert, IconBasket, IconChevR, IconClock, IconDown, IconPeso, IconUp } from "../components/Icons";
 
 const TIPS = [
   "Tip: low-stock items show red under Inventory — restock before Friday rush.",
@@ -29,6 +29,60 @@ function greeting(lang: string) {
   if (h < 12) return lang === "tl" ? "Magandang umaga" : "Good morning";
   if (h < 18) return lang === "tl" ? "Magandang hapon" : "Good afternoon";
   return lang === "tl" ? "Magandang gabi" : "Good evening";
+}
+
+function h12(h: number) {
+  const hh = ((h % 24) + 24) % 24;
+  return hh === 0 ? "12 AM" : hh < 12 ? `${hh} AM` : hh === 12 ? "12 PM" : `${hh - 12} PM`;
+}
+
+/** Progressive disclosure: collapsible card, animated via grid-rows. */
+function CollapseCard({
+  title,
+  sub,
+  right,
+  children,
+}: {
+  title: string;
+  sub?: string;
+  right?: ReactNode;
+  children: ReactNode;
+}) {
+  const [openState, setOpenState] = useState(true);
+  return (
+    <div className="h-full rounded-xl border border-line bg-card p-5 shadow-sm">
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <h2 className="font-display text-lg font-bold">{title}</h2>
+          {sub && <p className="text-xs text-ink-soft">{sub}</p>}
+        </div>
+        <div className="flex items-center gap-2">
+          {right}
+          <button
+            onClick={() => setOpenState((o) => !o)}
+            aria-expanded={openState}
+            aria-label={openState ? `Collapse ${title}` : `Expand ${title}`}
+            className="btn-press rounded-md p-1.5 text-ink-soft transition hover:bg-paper hover:text-pine"
+          >
+            <span
+              className={`inline-flex transition-transform duration-300 ${openState ? "rotate-90" : ""}`}
+              style={{ transitionTimingFunction: "var(--ease-standard)" }}
+            >
+              <IconChevR className="h-4 w-4" />
+            </span>
+          </button>
+        </div>
+      </div>
+      <div
+        className={`grid transition-[grid-template-rows] duration-300 ${openState ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
+        style={{ transitionTimingFunction: "var(--ease-standard)" }}
+      >
+        <div className="overflow-hidden">
+          <div className="pt-4">{children}</div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function Dashboard({ go }: { go?: (v: string) => void }) {
@@ -63,11 +117,27 @@ export default function Dashboard({ go }: { go?: (v: string) => void }) {
         items: list.reduce((s, x) => s + x.items.reduce((a, i) => a + i.qty, 0), 0),
       };
     };
-    const collected = db.customers.reduce(
-      (s, c) => s + c.history.filter((h) => h.type === "payment" && h.ts >= today0).reduce((a, h) => a + h.amount, 0),
-      0,
-    );
-    return { today: sum(today0, now + 1), yest: sum(yest0, today0), collected };
+    const collectedRange = (from: number, to: number) =>
+      db.customers.reduce(
+        (s, c) => s + c.history.filter((h) => h.type === "payment" && h.ts >= from && h.ts < to).reduce((a, h) => a + h.amount, 0),
+        0,
+      );
+    const paySplit = (from: number, to: number) => {
+      const list = db.sales.filter((s) => s.ts >= from && s.ts < to);
+      return {
+        cash: list.filter((s) => s.payment === "cash").reduce((s, x) => s + x.total, 0),
+        gcash: list.filter((s) => s.payment === "gcash").reduce((s, x) => s + x.total, 0),
+      };
+    };
+    const yp = paySplit(yest0, today0);
+    return {
+      today: sum(today0, now + 1),
+      yest: sum(yest0, today0),
+      collected: collectedRange(today0, now + 1),
+      collectedYest: collectedRange(yest0, today0),
+      yestCash: yp.cash,
+      yestGcash: yp.gcash,
+    };
   }, [db, today0, yest0, now]);
 
   const series = useMemo(() => dailySeries(db, 14), [db]);
@@ -75,6 +145,54 @@ export default function Dashboard({ go }: { go?: (v: string) => void }) {
   const agg7 = useMemo(() => productAgg(db, 7), [db]);
   const lows = lowStock(db);
   const deltaPct = stats.yest.total > 0 ? ((stats.today.total - stats.yest.total) / stats.yest.total) * 100 : 100;
+  const tl = settings.lang === "tl";
+
+  /* honest "AI" — plain arithmetic on the ledger, surfaced as chips */
+  const insights = useMemo(() => {
+    const out: { text: string; view: string; tint: string; icon: ReactNode }[] = [];
+    const todaySales = db.sales.filter((s) => s.ts >= today0);
+    const tally = new Map<string, number>();
+    todaySales.forEach((s) => s.items.forEach((i) => tally.set(i.productId, (tally.get(i.productId) ?? 0) + i.qty)));
+    const top = [...tally.entries()].sort((a, b) => b[1] - a[1])[0];
+    if (top) {
+      const p = db.products.find((x) => x.id === top[0]);
+      if (p)
+        out.push({
+          view: "sales",
+          tint: "bg-mango-soft text-mango-deep",
+          icon: <IconBasket className="h-4 w-4" />,
+          text: tl ? `Pinakamabili ngayon: ${p.name} · ${top[1]} pcs` : `Best seller today: ${p.name} · ${top[1]} pcs`,
+        });
+    }
+    const hours = new Array(24).fill(0) as number[];
+    db.sales.filter((s) => now - s.ts < 7 * 86400000).forEach((s) => hours[new Date(s.ts).getHours()]++);
+    const best = hours.indexOf(Math.max(...hours));
+    if (Math.max(...hours) > 0)
+      out.push({
+        view: "reports",
+        tint: "bg-gcash-soft text-gcash",
+        icon: <IconClock className="h-4 w-4" />,
+        text: `${tl ? "Rush hour" : "Rush hour"}: ${h12(best)}–${h12(best + 1)} · ${tl ? "huling 7 araw" : "last 7 days"}`,
+      });
+    if (lows.length > 0)
+      out.push({
+        view: "stock",
+        tint: "bg-cherry-soft text-cherry",
+        icon: <IconAlert className="h-4 w-4" />,
+        text: tl
+          ? `${lows.length} paninda ang mababa — ${lows.slice(0, 2).map((p) => p.name).join(", ")}${lows.length > 2 ? "…" : ""}`
+          : `${lows.length} items running low — ${lows.slice(0, 2).map((p) => p.name).join(", ")}${lows.length > 2 ? "…" : ""}`,
+      });
+    const debtor = [...db.customers].sort((a, b) => b.balance - a.balance)[0];
+    if (debtor && debtor.balance > 0)
+      out.push({
+        view: "utang",
+        tint: "bg-pine-soft text-pine",
+        icon: <IconPeso className="h-4 w-4" />,
+        text: tl ? `${debtor.name} — may ${peso0(debtor.balance)} na utang` : `${debtor.name} — owes ${peso0(debtor.balance)}`,
+      });
+    return out.slice(0, 4);
+  }, [db, today0, now, tl, lows]);
 
   const topSellers = useMemo(
     () =>
@@ -147,17 +265,27 @@ export default function Dashboard({ go }: { go?: (v: string) => void }) {
             </div>
             <div className="mt-6 flex flex-wrap divide-x divide-dashed divide-card/20">
               {[
-                [t("transactions"), String(stats.today.count)],
-                [t("itemsSold"), String(stats.today.items)],
-                [t("cash"), peso0(mix.cash)],
-                ["GCash", peso0(mix.gcash)],
-                [t("utangCollected"), peso0(stats.collected)],
-              ].map(([l, v]) => (
-                <div key={l} className="px-4 py-1 first:pl-0">
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-card/50">{l}</p>
-                  <p className="tnum font-mono text-sm font-bold">{v}</p>
-                </div>
-              ))}
+                { l: t("transactions"), v: String(stats.today.count), cur: stats.today.count, prev: stats.yest.count },
+                { l: t("itemsSold"), v: String(stats.today.items), cur: stats.today.items, prev: stats.yest.items },
+                { l: t("cash"), v: peso0(mix.cash), cur: mix.cash, prev: stats.yestCash },
+                { l: "GCash", v: peso0(mix.gcash), cur: mix.gcash, prev: stats.yestGcash },
+                { l: t("utangCollected"), v: peso0(stats.collected), cur: stats.collected, prev: stats.collectedYest },
+              ].map((it) => {
+                const pct = it.prev > 0 ? ((it.cur - it.prev) / it.prev) * 100 : null;
+                return (
+                  <div key={it.l} className="px-4 py-1 first:pl-0">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-card/50">{it.l}</p>
+                    <p className="tnum flex items-baseline gap-1.5 font-mono text-sm font-bold">
+                      {it.v}
+                      {pct !== null && (
+                        <span className={`font-mono text-[9px] font-extrabold ${pct >= 0 ? "text-leaf" : "text-[#f0b3ad]"}`} title={`vs ${t("yesterday").toLowerCase()}`}>
+                          {pct >= 0 ? "▲" : "▼"}{Math.abs(pct).toFixed(0)}%
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -200,6 +328,28 @@ export default function Dashboard({ go }: { go?: (v: string) => void }) {
         </div>
       </div>
 
+      {/* the ledger speaks — computed insights, each one a shortcut */}
+      {insights.length > 0 && (
+        <Reveal delay={40}>
+          <div className="flex items-stretch gap-2 overflow-x-auto pb-1">
+            <span className="flex shrink-0 items-center rounded-xl bg-pine px-3.5 font-mono text-[10px] font-extrabold uppercase tracking-[0.18em] text-mango">
+              {tl ? "Sabi ng datos" : "Data says"}
+            </span>
+            {insights.map((ins, i) => (
+              <button
+                key={i}
+                onClick={() => go?.(ins.view)}
+                className="btn-press group flex shrink-0 items-center gap-2.5 rounded-xl border border-line bg-card px-3.5 py-2.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-pine hover:shadow-elev-1"
+              >
+                <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${ins.tint}`}>{ins.icon}</span>
+                <span className="text-xs font-semibold leading-snug">{ins.text}</span>
+                <IconChevR className="h-3.5 w-3.5 shrink-0 text-ink-soft transition-transform group-hover:translate-x-0.5 group-hover:text-pine" />
+              </button>
+            ))}
+          </div>
+        </Reveal>
+      )}
+
       {/* charts row */}
       <div className="grid gap-4 lg:grid-cols-12">
         <Reveal className="lg:col-span-8">
@@ -238,11 +388,9 @@ export default function Dashboard({ go }: { go?: (v: string) => void }) {
       {/* insight row */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Reveal>
-          <div className="h-full rounded-xl border border-line bg-card p-5 shadow-sm">
-            <h2 className="font-display text-lg font-bold">{t("topSellers")} · 7d</h2>
-            <p className="mb-4 text-xs text-ink-soft">By units sold this week</p>
+          <CollapseCard title={`${t("topSellers")} · 7d`} sub="By units sold this week">
             <HBars rows={topSellers} fmt={(n) => `${n}`} unit="pcs" />
-          </div>
+          </CollapseCard>
         </Reveal>
         <Reveal delay={80}>
           <div className={`h-full rounded-xl border p-5 shadow-sm ${lows.length > 0 ? "border-cherry/30 bg-cherry-soft/40" : "border-line bg-card"}`}>
@@ -272,9 +420,7 @@ export default function Dashboard({ go }: { go?: (v: string) => void }) {
           </div>
         </Reveal>
         <Reveal delay={160} className="md:col-span-2 lg:col-span-1">
-          <div className="h-full rounded-xl border border-line bg-card p-5 shadow-sm">
-            <h2 className="font-display text-lg font-bold">{t("activity")}</h2>
-            <p className="mb-3 text-xs text-ink-soft">Stock in &amp; out, newest first</p>
+          <CollapseCard title={t("activity")} sub={"Stock in & out, newest first"}>
             <ul className="space-y-1">
               {feed.map((m) => (
                 <li key={m.id} className="flex items-center gap-2 rounded-md px-1.5 py-1.5 text-sm transition hover:bg-paper">
@@ -291,7 +437,7 @@ export default function Dashboard({ go }: { go?: (v: string) => void }) {
                 </li>
               ))}
             </ul>
-          </div>
+          </CollapseCard>
         </Reveal>
       </div>
 

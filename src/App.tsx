@@ -1,10 +1,12 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type ComponentType } from "react";
 import { StoreProvider, useStore, THEMES, type ThemeKey } from "./lib/store";
-import { lowStock, overdueDays } from "./lib/data";
+import { lowStock, overdueDays, peso0 } from "./lib/data";
 import type { StrKey, Lang } from "./lib/i18n";
 import { Seg, SyncPill, ToastHost } from "./components/ui";
 import {
+  IconAlert,
   IconBasket,
+  IconBell,
   IconBox,
   IconChart,
   IconCheck,
@@ -13,6 +15,7 @@ import {
   IconLock,
   IconMonitor,
   IconPalette,
+  IconPeso,
   IconPhone,
   IconPower,
   IconReceipt,
@@ -153,6 +156,106 @@ function ThemeMenu({ value, onChange }: { value: ThemeKey; onChange: (t: ThemeKe
               {t.key === value && <IconCheck className="h-4 w-4 shrink-0 text-mango" />}
             </button>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Notification center — low stock & overdue utang, each a one-tap shortcut. */
+function NoticeBell({ onView }: { onView: (v: View) => void }) {
+  const { db } = useStore();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    window.addEventListener("mousedown", onDown);
+    return () => window.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  const lows = lowStock(db);
+  const overdue = db.customers
+    .map((c) => ({ c, d: overdueDays(c) }))
+    .filter((x) => x.d > 7)
+    .sort((a, b) => b.d - a.d);
+  const count = lows.length + overdue.length;
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        title="Notifications"
+        aria-label={`Notifications${count > 0 ? `, ${count} pending` : ""}`}
+        aria-expanded={open}
+        className={`btn-press relative flex h-9 w-9 items-center justify-center rounded-lg border transition ${
+          open ? "border-pine bg-pine text-mango" : "border-line bg-card text-ink-soft hover:border-pine hover:text-pine"
+        }`}
+      >
+        <IconBell className="h-[18px] w-[18px]" />
+        {count > 0 && (
+          <span className="tnum absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-cherry px-1 font-mono text-[9px] font-extrabold text-cherry-soft">
+            {count}
+          </span>
+        )}
+      </button>
+      {open && (
+        <div className="pop absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-xl border border-line bg-card shadow-elev-3">
+          <div className="stripes-soft h-1" />
+          <div className="flex items-center justify-between px-4 py-3">
+            <p className="font-display text-sm font-extrabold">Needs attention</p>
+            <span className="tnum rounded bg-paper px-2 py-0.5 font-mono text-[10px] font-bold text-ink-soft">{count}</span>
+          </div>
+          <div className="max-h-72 overflow-y-auto">
+            {count === 0 && (
+              <p className="px-4 pb-4 text-xs text-ink-soft">
+                Wala — all clear. Stock is healthy and every utang is current.
+              </p>
+            )}
+            {lows.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => {
+                  onView("stock");
+                  setOpen(false);
+                }}
+                className="btn-press flex w-full items-center gap-3 border-t border-line px-4 py-2.5 text-left transition hover:bg-cherry-soft/40"
+              >
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-cherry-soft text-cherry">
+                  <IconAlert className="h-4 w-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-xs font-bold">{p.name}</span>
+                  <span className="block font-mono text-[10px] text-cherry">{p.stock === 0 ? "out of stock" : `${p.stock} left`}</span>
+                </span>
+                <span className="shrink-0 font-mono text-[10px] font-bold text-ink-soft">Restock →</span>
+              </button>
+            ))}
+            {overdue.map(({ c, d }) => (
+              <button
+                key={c.id}
+                onClick={() => {
+                  onView("utang");
+                  setOpen(false);
+                }}
+                className="btn-press flex w-full items-center gap-3 border-t border-line px-4 py-2.5 text-left transition hover:bg-mango-soft/40"
+              >
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-mango-soft text-mango-deep">
+                  <IconPeso className="h-4 w-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-xs font-bold">{c.name}</span>
+                  <span className="block font-mono text-[10px] text-mango-deep">
+                    {d}d overdue · {peso0(c.balance)}
+                  </span>
+                </span>
+                <span className="shrink-0 font-mono text-[10px] font-bold text-ink-soft">Collect →</span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -315,6 +418,7 @@ function Shell() {
               <h1 className="truncate font-display text-lg font-extrabold leading-tight md:text-xl">{t(`nav.${view}` as StrKey)}</h1>
               <p className="hidden truncate text-xs text-ink-soft sm:block">{t(`sub.${view}` as StrKey)}</p>
             </div>
+            <NoticeBell onView={(v) => setView(v)} />
             <ThemeMenu value={settings.theme} onChange={(theme) => updateSettings({ theme })} />
             <Seg<Lang>
               value={settings.lang}
