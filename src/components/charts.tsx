@@ -1,6 +1,29 @@
 import { memo, useRef, useState } from "react";
 import { fmtDay, peso0, type DayAgg } from "../lib/data";
 
+/* ------------------------------- Spark ------------------------------ */
+
+/** Inline 7-day trend — stroke takes currentColor so it sits in any theme. */
+export function Spark({ points, className = "h-6 w-20" }: { points: number[]; className?: string }) {
+  if (points.length < 2) return null;
+  const max = Math.max(...points, 1);
+  const min = Math.min(...points, 0);
+  const span = Math.max(max - min, 1);
+  const W = 80;
+  const H = 24;
+  const pts = points.map((v, i) => ({
+    x: (i / (points.length - 1)) * (W - 4) + 2,
+    y: H - 3 - ((v - min) / span) * (H - 6),
+  }));
+  const d = `M${pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" L")}`;
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className={className} aria-hidden="true" preserveAspectRatio="none">
+      <path d={d} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.85" />
+      <circle cx={pts[pts.length - 1].x} cy={pts[pts.length - 1].y} r="2.4" fill="currentColor" />
+    </svg>
+  );
+}
+
 /* ------------------------------- Bars ------------------------------ */
 
 export function Bars({
