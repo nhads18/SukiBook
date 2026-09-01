@@ -13,10 +13,8 @@ import {
   IconDash,
   IconGear,
   IconLock,
-  IconMonitor,
   IconPalette,
   IconPeso,
-  IconPhone,
   IconPower,
   IconReceipt,
   IconRocket,
@@ -25,7 +23,6 @@ import {
   LogoMark,
 } from "./components/Icons";
 import Dashboard from "./views/Dashboard";
-import MobileScene from "./Mobile";
 
 /* Route-level code splitting: every non-landing view ships as its own chunk. */
 const SalesView = lazy(() => import("./views/Sales"));
@@ -265,7 +262,6 @@ function NoticeBell({ onView }: { onView: (v: View) => void }) {
 function Shell() {
   const { db, t, settings, updateSettings, sync, toasts, lockNow, auth, syncError, clearSyncError } = useStore();
   const [view, setView] = useState<View>("dashboard");
-  const [device, setDevice] = useState<"web" | "mobile">("web");
 
   /* sliding active-nav indicator (measured, transform-only) */
   const navRef = useRef<HTMLElement | null>(null);
@@ -281,8 +277,8 @@ function Shell() {
 
   /* keep the browser tab honest — "Sales · SukiBook" beats nine identical tabs */
   useEffect(() => {
-    document.title = device === "mobile" ? "Mobile · SukiBook" : `${t(`nav.${view}` as StrKey)} · SukiBook`;
-  }, [view, device, t]);
+    document.title = `${t(`nav.${view}` as StrKey)} · SukiBook`;
+  }, [view, t]);
 
   /* measure the active nav item so the indicator glides between items */
   useLayoutEffect(() => {
@@ -304,10 +300,7 @@ function Shell() {
   useEffect(() => {
     const onNav = (e: Event) => {
       const detail = (e as CustomEvent).detail as View;
-      if (detail) {
-        setDevice("web");
-        setView(detail);
-      }
+      if (detail) setView(detail);
     };
     window.addEventListener("sukibook-nav", onNav);
     return () => window.removeEventListener("sukibook-nav", onNav);
@@ -318,11 +311,9 @@ function Shell() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "/") return;
       const el = document.activeElement as HTMLElement | null;
-      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable)) return;
-      e.preventDefault();
-      setDevice("web");
-      setView("products");
-      window.setTimeout(() => window.dispatchEvent(new Event("sukibook-focus-search")), 90);
+        if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable)) return;
+        e.preventDefault();
+        setView("products");      window.setTimeout(() => window.dispatchEvent(new Event("sukibook-focus-search")), 90);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -334,7 +325,6 @@ function Shell() {
     key === "stock" && lowCount > 0 ? lowCount : key === "utang" && overdueCount > 0 ? overdueCount : null;
   const badgeTint = (key: View) => (key === "stock" ? "bg-cherry text-cherry-soft" : "bg-mango text-pine-deep");
 
-  if (device === "mobile") return <MobileScene onSwitch={() => setDevice("web")} />;
 
   const Current = VIEWS[view];
 
@@ -433,24 +423,6 @@ function Shell() {
                 { key: "tl", label: "TL" },
               ]}
             />
-            <div className="hidden rounded-lg border border-line bg-card p-0.5 sm:block" title="Device preview">
-              <div className="flex">
-                <button
-                  onClick={() => setDevice("web")}
-                  className={`btn-press rounded-md p-2 transition ${device === "web" ? "bg-pine text-mango" : "text-ink-soft hover:text-pine"}`}
-                  aria-label="Web dashboard"
-                >
-                  <IconMonitor className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => setDevice("mobile")}
-                  className="btn-press rounded-md p-2 text-ink-soft transition hover:text-pine"
-                  aria-label="Mobile app preview"
-                >
-                  <IconPhone className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
             <SyncPill status={sync.status} label={t("synced")} />
             <span
               className={`hidden items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider transition sm:flex ${ROLE_META[settings.role]?.tint ?? "bg-paper text-ink-soft"}`}
