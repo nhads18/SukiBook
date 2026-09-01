@@ -208,7 +208,7 @@ export default function UtangView() {
                     )}
                   </div>
                   <div className="mt-2 flex gap-1.5">
-                    <input value={payAmt} onChange={(e) => setPayAmt(e.target.value)} type="number" placeholder="₱ amount" className="field border-card/20 bg-card/10 px-2.5 py-1.5 text-xs text-card placeholder:text-card/50" />
+                    <input value={payAmt} onChange={(e) => setPayAmt(e.target.value)} type="number" inputMode="decimal" placeholder="₱ amount" aria-label="Payment amount in pesos" className="field border-card/20 bg-card/10 px-2.5 py-1.5 text-xs text-card placeholder:text-card/50" />
                     <button
                       onClick={() => {
                         const a = parseFloat(payAmt);

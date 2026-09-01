@@ -255,7 +255,7 @@ function PhoneApp() {
                       <Stepper small value={q} min={0} onChange={(v) => setLines((prev) => {
                         const n = { ...prev };
                         if (v <= 0) delete n[id];
-                        else n[id] = v;
+                        else n[id] = Math.min(v, p.stock);
                         return n;
                       })} />
                       <span className="tnum w-12 text-right font-mono text-[11px] font-bold">{peso0(p.price * q)}</span>
@@ -474,7 +474,7 @@ export default function MobileScene({ onSwitch }: { onSwitch: () => void }) {
   return (
     <div className="relative flex min-h-screen items-center justify-center gap-14 overflow-hidden bg-pine-deep px-5 py-10">
       {/* ambient background */}
-      <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(900px 500px at 80% 15%, rgba(246,168,28,0.12), transparent 60%), radial-gradient(700px 500px at 10% 85%, rgba(47,143,91,0.14), transparent 60%)" }} />
+      <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(900px 500px at 80% 15%, color-mix(in srgb, var(--color-mango) 12%, transparent), transparent 60%), radial-gradient(700px 500px at 10% 85%, color-mix(in srgb, var(--color-leaf) 14%, transparent), transparent 60%)" }} />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-2 stripes-anim stripes" />
       <div className="pointer-events-none absolute -left-24 top-1/3 hidden rotate-6 rounded-2xl border border-card/10 p-4 font-display text-6xl font-extrabold text-card/[0.05] lg:block">₱</div>
 

@@ -50,7 +50,7 @@ html {
 
 body {
   @apply bg-paper text-ink font-body antialiased;
-  background-image: radial-gradient(rgba(16, 53, 36, 0.055) 1px, transparent 1px);
+  background-image: radial-gradient(color-mix(in srgb, var(--color-pine) 6%, transparent) 1px, transparent 1px);
   background-size: 22px 22px;
 }
 
@@ -177,7 +177,11 @@ body {
   }
 }
 .stripes-soft {
-  background: repeating-linear-gradient(90deg, rgba(246, 168, 28, 0.9) 0 14px, rgba(16, 53, 36, 0.92) 14px 28px);
+  background: repeating-linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-mango) 90%, transparent) 0 14px,
+    color-mix(in srgb, var(--color-pine) 92%, transparent) 14px 28px
+  );
 }
 
 /* ---- film grain ---- */
@@ -313,13 +317,13 @@ body {
 }
 .field:focus {
   border-color: var(--color-pine);
-  box-shadow: 0 0 0 3px rgba(16, 53, 36, 0.12);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-pine) 12%, transparent);
 }
 
 /* ---- scrollbars ---- */
 *::-webkit-scrollbar { width: 9px; height: 9px; }
 *::-webkit-scrollbar-thumb {
-  background: #c9cdbc;
+  background: var(--color-line);
   border-radius: 8px;
   border: 2px solid var(--color-paper);
 }

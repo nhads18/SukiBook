@@ -257,7 +257,7 @@ export default function AuthScreen({
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(900px 520px at 82% 8%, rgba(246,168,28,0.13), transparent 60%), radial-gradient(700px 520px at 8% 92%, rgba(47,143,91,0.16), transparent 60%)",
+            "radial-gradient(900px 520px at 82% 8%, color-mix(in srgb, var(--color-mango) 13%, transparent), transparent 60%), radial-gradient(700px 520px at 8% 92%, color-mix(in srgb, var(--color-leaf) 16%, transparent), transparent 60%)",
         }}
       />
       <div className="stripes stripes-anim absolute inset-x-0 top-0 h-2.5" />

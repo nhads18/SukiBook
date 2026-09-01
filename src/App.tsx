@@ -279,6 +279,11 @@ function Shell() {
     if ((view === "deploy" || view === "golive") && !isAdmin) setView("dashboard");
   }, [view, isAdmin]);
 
+  /* keep the browser tab honest — "Sales · SukiBook" beats nine identical tabs */
+  useEffect(() => {
+    document.title = device === "mobile" ? "Mobile · SukiBook" : `${t(`nav.${view}` as StrKey)} · SukiBook`;
+  }, [view, device, t]);
+
   /* measure the active nav item so the indicator glides between items */
   useLayoutEffect(() => {
     const measure = () => {

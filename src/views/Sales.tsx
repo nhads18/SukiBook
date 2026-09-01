@@ -135,7 +135,7 @@ export default function SalesView() {
                         <Stepper small value={q} min={0} onChange={(v) => setLines((prev) => {
                           const n = { ...prev };
                           if (v <= 0) delete n[id];
-                          else n[id] = v;
+                          else n[id] = Math.min(v, p.stock);
                           return n;
                         })} />
                         <span className="tnum w-16 text-right font-mono text-sm font-bold">{peso(p.price * q)}</span>

@@ -148,10 +148,10 @@ export function AreaChart({
           </linearGradient>
         </defs>
         {[0.25, 0.5, 0.75].map((f) => (
-          <line key={f} x1={pad} x2={W - pad} y1={y(max * f)} y2={y(max * f)} stroke="#e0e2d2" strokeDasharray="3 5" />
+          <line key={f} x1={pad} x2={W - pad} y1={y(max * f)} y2={y(max * f)} stroke="var(--color-line)" strokeDasharray="3 5" />
         ))}
-        <line x1={pad} x2={W - pad} y1={H - 24} y2={H - 24} stroke="#cdd0be" />
-        {prev && <path d={line(prev)} fill="none" stroke="#c9a24b" strokeWidth="2" strokeDasharray="5 5" opacity="0.8" />}
+        <line x1={pad} x2={W - pad} y1={H - 24} y2={H - 24} stroke="var(--color-line)" />
+        {prev && <path d={line(prev)} fill="none" stroke="var(--color-mango-deep)" strokeWidth="2" strokeDasharray="5 5" opacity="0.8" />}
         <path d={area} fill="url(#areaFill)" />
         <path d={line(series)} pathLength={1} className="draw-in" fill="none" stroke="var(--color-pine)" strokeWidth="2.4" strokeLinejoin="round" />
         {hv && (
@@ -199,7 +199,7 @@ export function Donut({
     <div className="flex items-center gap-5">
       <div className="relative h-36 w-36 shrink-0">
         <svg viewBox="0 0 140 140" className="h-full w-full -rotate-90">
-          <circle cx="70" cy="70" r={R} fill="none" stroke="#eceee0" strokeWidth="17" />
+          <circle cx="70" cy="70" r={R} fill="none" stroke="var(--color-paper)" strokeWidth="17" />
           {segments.map((s, i) => {
             const frac = s.value / total;
             const off = acc;

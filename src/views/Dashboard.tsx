@@ -220,7 +220,7 @@ export default function Dashboard({ go }: { go?: (v: string) => void }) {
     <div className="space-y-6">
       {/* ---- store masthead: the counter itself ---- */}
       <div className="@container relative overflow-hidden rounded-overlay border border-pine-deep/40 bg-pine text-card shadow-elev-3">
-        <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(720px 320px at 88% 0%, rgba(246,168,28,0.20), transparent 60%)" }} />
+        <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(720px 320px at 88% 0%, color-mix(in srgb, var(--color-mango) 20%, transparent), transparent 60%)" }} />
         <div className="stripes-soft absolute inset-x-0 top-0 h-1.5" />
         <p className="pointer-events-none absolute -bottom-14 right-0 select-none font-display text-[190px] font-extrabold leading-none text-card/[0.05]">₱</p>
 
