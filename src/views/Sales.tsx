@@ -141,7 +141,9 @@ export default function SalesView() {
                   />
                   {payment === "utang" && (
                     <div className="flex flex-wrap items-center gap-2">
+                      <label htmlFor="suki-select" className="sr-only">Select suki for utang sale</label>
                       <select
+                        id="suki-select"
                         value={newSuki.open ? "__new" : customerId}
                         onChange={(e) => {
                           if (e.target.value === "__new") setNewSuki((s) => ({ ...s, open: true }));
@@ -171,6 +173,8 @@ export default function SalesView() {
                             value={newSuki.phone}
                             onChange={(e) => setNewSuki((s) => ({ ...s, phone: e.target.value }))}
                             placeholder="09…"
+                            inputMode="tel"
+                            aria-label="New suki phone number"
                             className="field w-24 px-2 py-1.5 text-xs"
                           />
                           <button

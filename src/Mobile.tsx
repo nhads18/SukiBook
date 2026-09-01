@@ -432,7 +432,7 @@ function PhoneApp() {
       )}
 
       {/* bottom nav */}
-      <nav className="grid grid-cols-4 border-t border-line bg-card">
+      <nav className="safe-b grid grid-cols-4 border-t border-line bg-card" aria-label="Phone tabs">
         {NAV.map((n) => (
           <button key={n.key} onClick={() => setTab(n.key)} className={`relative flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-bold transition ${tab === n.key ? "text-pine" : "text-ink-soft"}`}>
             {tab === n.key && <span className="absolute top-0 h-0.5 w-9 rounded-full bg-mango" />}

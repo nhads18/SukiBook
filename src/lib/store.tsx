@@ -47,7 +47,7 @@ import {
 } from "./auth";
 
 export type Role = "owner" | "helper" | "accountant";
-export type ThemeKey = "awning" | "barako" | "jeepney";
+export type ThemeKey = "awning" | "barako" | "jeepney" | "gabi";
 
 export const THEMES: { key: ThemeKey; name: string; tagline: string; swatches: string[]; font: string; meta: string }[] = [
   {
@@ -73,6 +73,14 @@ export const THEMES: { key: ThemeKey; name: string; tagline: string; swatches: s
     swatches: ["#4a101f", "#f7c91f", "#f7f2e7"],
     font: '"Alfa Slab One", sans-serif',
     meta: "#4a101f",
+  },
+  {
+    key: "gabi",
+    name: "Gabi",
+    tagline: "Night shift — deep greens under the lantern's mango glow",
+    swatches: ["#12281d", "#f2a91e", "#0b1d15"],
+    font: '"Bricolage Grotesque Variable", sans-serif',
+    meta: "#06120c",
   },
 ];
 
@@ -125,6 +133,9 @@ interface StoreCtx {
   continueDemo: () => void;
   auth: { phase: AuthPhase | "ready"; email: string | null };
   authUsers: { email: string; name: string; storeName: string }[];
+  /** Persistent cloud-push failure (sticky banner) — null when healthy. */
+  syncError: string | null;
+  clearSyncError: () => void;
   authRegister: (email: string, name: string, storeName: string, pin: string) => Promise<string | null>;
   authSignIn: (email: string, pin: string) => Promise<string | null>;
   authUnlock: (pin: string) => Promise<string | null>;
@@ -173,6 +184,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     status: "synced",
     last: Date.now(),
   });
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const clearSyncError = useCallback(() => setSyncError(null), []);
   const syncTimer = useRef<number | null>(null);
   const toastId = useRef(0);
 
@@ -333,9 +346,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       try {
         await pushStore(u.id, dbRef.current, settingsRef.current as unknown as Record<string, unknown>);
         setSync({ status: "synced", last: Date.now() });
+        setSyncError(null);
       } catch (e) {
         setSync({ status: "synced", last: Date.now() });
-        notify("warn", "Cloud sync failed", e instanceof Error ? e.message : "Kept on device — retries on next change");
+        setSyncError(e instanceof Error ? e.message : "Push failed — data kept on device");
+        notify("warn", "Cloud sync failed", "Kept on device — retries on next change");
       }
     }, 1600);
   }, [configured, notify]);
@@ -599,6 +614,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     addStaff, updateStaff, removeStaff,
     cloud, login, logout, continueDemo,
     auth, authUsers, authRegister, authSignIn, authUnlock, lockNow, signOut, resetAccountAction,
+    syncError, clearSyncError,
   };
 
   if (cloud.mode === "gate") {

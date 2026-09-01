@@ -1,10 +1,5 @@
-/* Stable boot shim — resolves the hashed production bundle.
-   Dual-path: works whether this page is served from dist/ or the project root. */
-async function start() {
-  try {
-    await import("./assets/index-4oeHuj32.js");
-  } catch (_e) {
-    await import("../dist/assets/index-4oeHuj32.js");
-  }
-}
-start();
+/* Stable boot shim — resolved by the dual-boot loader in index.html when the
+   dev entry (/src/main.tsx) cannot execute (no live transform on the host).
+   Tries same-directory assets first (dist root), then ../dist (project root).
+   Keep the hashes in sync with `npm run build` output. */
+import("./assets/index-BsnBlOD2.js").catch(() => import("../dist/assets/index-BsnBlOD2.js"));

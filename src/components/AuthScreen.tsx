@@ -303,7 +303,7 @@ export default function AuthScreen({
 
         {/* auth card */}
         <div className="mx-auto w-full max-w-md">
-          <div className="overflow-hidden rounded-2xl border border-card/10 bg-card shadow-[0_36px_80px_-24px_rgba(0,0,0,0.6)]">
+          <div className="overflow-hidden rounded-overlay border border-card/10 bg-card shadow-elev-3">
             <div className="stripes-soft h-2" />
             <div className="px-7 pb-7 pt-6">
               <div className="mb-5 flex items-center gap-3 lg:hidden">

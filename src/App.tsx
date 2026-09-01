@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ComponentType } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type ComponentType } from "react";
 import { StoreProvider, useStore, THEMES, type ThemeKey } from "./lib/store";
 import { lowStock, overdueDays } from "./lib/data";
 import type { StrKey, Lang } from "./lib/i18n";
@@ -22,15 +22,17 @@ import {
   LogoMark,
 } from "./components/Icons";
 import Dashboard from "./views/Dashboard";
-import SalesView from "./views/Sales";
-import ProductsView from "./views/Products";
-import StockView from "./views/Stock";
-import UtangView from "./views/Utang";
-import ReportsView from "./views/Reports";
-import DeployView from "./views/Deploy";
-import GoLiveView from "./views/GoLive";
-import SettingsView from "./views/Settings";
 import MobileScene from "./Mobile";
+
+/* Route-level code splitting: every non-landing view ships as its own chunk. */
+const SalesView = lazy(() => import("./views/Sales"));
+const ProductsView = lazy(() => import("./views/Products"));
+const StockView = lazy(() => import("./views/Stock"));
+const UtangView = lazy(() => import("./views/Utang"));
+const ReportsView = lazy(() => import("./views/Reports"));
+const DeployView = lazy(() => import("./views/Deploy"));
+const GoLiveView = lazy(() => import("./views/GoLive"));
+const SettingsView = lazy(() => import("./views/Settings"));
 
 type View = "dashboard" | "sales" | "products" | "stock" | "utang" | "reports" | "deploy" | "golive" | "settings";
 
@@ -78,6 +80,20 @@ function LockedPanel({ title, note }: { title: string; note: string }) {
           Settings → Team &amp; roles to switch
         </p>
       </div>
+    </div>
+  );
+}
+
+/** Branded loading state for lazy routes — awning shimmer, never a spinner. */
+function ViewSkeleton() {
+  return (
+    <div className="space-y-5" aria-busy="true" aria-label="Loading view">
+      <div className="skel h-24 w-full" />
+      <div className="grid gap-5 lg:grid-cols-12">
+        <div className="skel h-64 lg:col-span-7" />
+        <div className="skel h-64 lg:col-span-5" />
+      </div>
+      <div className="skel h-40 w-full" />
     </div>
   );
 }
@@ -144,9 +160,14 @@ function ThemeMenu({ value, onChange }: { value: ThemeKey; onChange: (t: ThemeKe
 }
 
 function Shell() {
-  const { db, t, settings, updateSettings, sync, toasts, lockNow, auth } = useStore();
+  const { db, t, settings, updateSettings, sync, toasts, lockNow, auth, syncError, clearSyncError } = useStore();
   const [view, setView] = useState<View>("dashboard");
   const [device, setDevice] = useState<"web" | "mobile">("web");
+
+  /* sliding active-nav indicator (measured, transform-only) */
+  const navRef = useRef<HTMLElement | null>(null);
+  const btnRefs = useRef<Partial<Record<View, HTMLButtonElement | null>>>({});
+  const [ind, setInd] = useState<{ top: number; height: number } | null>(null);
 
   /* ---- role-based access (spec §10) — Deploy & Go Live are owner-only ---- */
   const isAdmin = settings.role === "owner";
@@ -154,6 +175,22 @@ function Shell() {
   useEffect(() => {
     if ((view === "deploy" || view === "golive") && !isAdmin) setView("dashboard");
   }, [view, isAdmin]);
+
+  /* measure the active nav item so the indicator glides between items */
+  useLayoutEffect(() => {
+    const measure = () => {
+      const el = btnRefs.current[view];
+      const nav = navRef.current;
+      if (el && nav) {
+        const nr = nav.getBoundingClientRect();
+        const r = el.getBoundingClientRect();
+        setInd({ top: r.top - nr.top + nav.scrollTop, height: r.height });
+      }
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [view]);
 
   /* cross-view navigation from inside views */
   useEffect(() => {
@@ -194,7 +231,10 @@ function Shell() {
   const Current = VIEWS[view];
 
   return (
-    <div className="noise flex min-h-screen">
+    <div className="noise app-h flex">
+      <a href="#main" className="skip-link">
+        Skip to content
+      </a>
       {/* ---------------- sidebar ---------------- */}
       <aside className="fixed inset-y-0 left-0 z-40 flex w-[68px] flex-col border-r border-pine-deep/40 bg-pine text-card md:w-60">
         <div className="flex items-center gap-2.5 px-3.5 py-4 md:px-5">
@@ -205,17 +245,31 @@ function Shell() {
           </div>
         </div>
         <div className="stripes-soft mx-3 h-1 rounded-full md:mx-5" />
-        <nav className="mt-2 flex-1 space-y-1 px-2 lg:px-3">
+        <nav ref={navRef} className="relative mt-2 flex-1 space-y-1 px-2 lg:px-3" aria-label="Primary">
+          <span
+            aria-hidden="true"
+            className="absolute inset-x-2 rounded-lg bg-card/10 transition-[top,height,opacity] duration-300 lg:inset-x-3"
+            style={{
+              top: ind?.top ?? 0,
+              height: ind?.height ?? 0,
+              opacity: ind ? 1 : 0,
+              transitionTimingFunction: "var(--ease-standard)",
+            }}
+          />
           {visibleNav.map((n) => {
             const active = view === n.key;
             const b = badge(n.key);
             return (
               <button
                 key={n.key}
+                ref={(el) => {
+                  btnRefs.current[n.key] = el;
+                }}
                 onClick={() => setView(n.key)}
                 title={t(n.label)}
-                className={`btn-press relative flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-semibold transition md:px-3 ${
-                  active ? "bg-card/10 text-mango" : "text-card/65 hover:bg-card/5 hover:text-card"
+                aria-current={active ? "page" : undefined}
+                className={`btn-press relative z-10 flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-semibold transition md:px-3 ${
+                  active ? "text-mango" : "text-card/65 hover:bg-card/5 hover:text-card"
                 }`}
               >
                 {active && <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-mango" />}
@@ -242,9 +296,20 @@ function Shell() {
       </aside>
 
       {/* ---------------- main column ---------------- */}
-      <div className="flex min-h-screen flex-1 flex-col pl-[68px] md:pl-60">
+      <div className="app-h flex flex-1 flex-col pl-[68px] md:pl-60">
         {/* topbar */}
         <header className="sticky top-0 z-30 border-b border-line bg-paper/85 backdrop-blur">
+          {syncError && (
+            <div role="alert" className="rise flex items-center gap-2.5 bg-cherry px-4 py-2 text-xs font-semibold text-cherry-soft md:px-6">
+              <span className="pulse-dot h-1.5 w-1.5 shrink-0 rounded-full bg-cherry-soft" />
+              <span className="min-w-0 flex-1 truncate">
+                Cloud push failed — {syncError}. Data is safe on this device; it retries on the next change.
+              </span>
+              <button onClick={clearSyncError} className="btn-press shrink-0 rounded px-1.5 py-0.5 font-extrabold uppercase transition hover:bg-cherry-soft/20" aria-label="Dismiss sync warning">
+                ✕
+              </button>
+            </div>
+          )}
           <div className="mx-auto flex max-w-[1440px] items-center gap-3 px-4 py-3 md:px-6">
             <div className="min-w-0 flex-1">
               <h1 className="truncate font-display text-lg font-extrabold leading-tight md:text-xl">{t(`nav.${view}` as StrKey)}</h1>
@@ -298,8 +363,8 @@ function Shell() {
         </header>
 
         {/* mobile bottom nav */}
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-card/95 backdrop-blur md:hidden">
-          <nav className="flex gap-1 overflow-x-auto px-3 py-2">
+        <div className="safe-b fixed inset-x-0 bottom-0 z-30 border-t border-line bg-card/95 backdrop-blur md:hidden">
+          <nav className="flex gap-1 overflow-x-auto px-3 py-2" aria-label="Primary mobile">
             {visibleNav.map((n) => (
               <button
                 key={n.key}
@@ -315,7 +380,7 @@ function Shell() {
           </nav>
         </div>
 
-        <main className="relative mx-auto w-full max-w-[1440px] flex-1 px-4 py-5 pb-24 md:px-6 md:py-7 md:pb-7">
+        <main id="main" className="relative mx-auto w-full max-w-[1440px] flex-1 px-4 py-5 pb-24 md:px-6 md:py-7 md:pb-7">
           <div key={view} className="rise">
             {view === "dashboard" ? (
               <Dashboard go={(v) => setView(v as View)} />
@@ -325,7 +390,9 @@ function Shell() {
                 note="Deployment, production and infra settings are restricted to the store owner (admin). Helpers and accountants keep their day-to-day views."
               />
             ) : (
-              <Current />
+              <Suspense fallback={<ViewSkeleton />}>
+                <Current />
+              </Suspense>
             )}
           </div>
         </main>

@@ -212,7 +212,7 @@ export default function ReportsView() {
       </div>
 
       <Reveal>
-        <div className="rounded-xl border border-line bg-card p-5 shadow-sm">
+        <div className="cv-auto rounded-xl border border-line bg-card p-5 shadow-sm">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
             <div>
               <h2 className="font-display text-lg font-bold">Best-selling hours</h2>

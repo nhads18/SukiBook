@@ -287,6 +287,8 @@ export default function SettingsView() {
                   value={staffForm.phone}
                   onChange={(e) => setStaffForm((f) => ({ ...f, phone: e.target.value }))}
                   placeholder="09…"
+                  inputMode="tel"
+                  aria-label="Staff phone number"
                   className="field w-32 px-3 py-2 text-xs"
                 />
                 <select

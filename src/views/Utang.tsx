@@ -50,8 +50,8 @@ export default function UtangView() {
         <Reveal>
           <div className="relative">
             <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft" />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Hanapin ang suki…" className="field pl-9" />
-          </div>
+              <label htmlFor="suki-search" className="sr-only">Search customers</label>
+              <input id="suki-search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Hanapin ang suki…" className="field pl-9" />          </div>
         </Reveal>
 
         {/* quick-add: walang modal — type, Enter, tapos */}
@@ -62,18 +62,23 @@ export default function UtangView() {
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-pine text-mango" title="Bagong suki">
                 <IconUsers className="h-[18px] w-[18px]" />
               </span>
+              <label htmlFor="suki-new-name" className="sr-only">New suki name</label>
               <input
+                id="suki-new-name"
                 value={newCust.name}
                 onChange={(e) => setNewCust({ ...newCust, name: e.target.value })}
                 onKeyDown={(e) => e.key === "Enter" && quickAdd()}
                 placeholder="Bagong suki — pangalan…"
                 className="field min-w-32 flex-1 px-3 py-2 text-sm"
               />
+              <label htmlFor="suki-new-phone" className="sr-only">New suki phone number</label>
               <input
+                id="suki-new-phone"
                 value={newCust.phone}
                 onChange={(e) => setNewCust({ ...newCust, phone: e.target.value })}
                 onKeyDown={(e) => e.key === "Enter" && quickAdd()}
                 placeholder="09…"
+                inputMode="tel"
                 className="field w-28 px-3 py-2 text-sm"
               />
               <button

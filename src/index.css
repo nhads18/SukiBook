@@ -1,3 +1,8 @@
+@import "@fontsource-variable/bricolage-grotesque";
+@import "@fontsource-variable/instrument-sans";
+@import "@fontsource-variable/spline-sans-mono";
+@import "@fontsource-variable/fraunces";
+@import "@fontsource/alfa-slab-one/400.css";
 @import "tailwindcss";
 
 @theme {
@@ -14,13 +19,29 @@
   --color-mango-soft: #fbedcb;
   --color-leaf: #2f8f5b;
   --color-leaf-soft: #dfefe4;
-  --color-cherry: #c9463d;
+  --color-cherry: #b53a32;
   --color-cherry-soft: #f7e1de;
   --color-gcash: #2e6fd0;
   --color-gcash-soft: #e0e9f8;
-  --font-display: "Bricolage Grotesque", "Instrument Sans", sans-serif;
-  --font-body: "Instrument Sans", sans-serif;
-  --font-mono: "Spline Sans Mono", ui-monospace, monospace;
+  --font-display: "Bricolage Grotesque Variable", "Bricolage Grotesque", sans-serif;
+  --font-body: "Instrument Sans Variable", "Instrument Sans", sans-serif;
+  --font-mono: "Spline Sans Mono Variable", "Spline Sans Mono", ui-monospace, monospace;
+  /* elevation system (three levels, nothing else) */
+  --shadow-elev-1: 0 1px 2px rgb(11 39 27 / 0.06), 0 1px 3px rgb(11 39 27 / 0.08);
+  --shadow-elev-2: 0 10px 24px -12px rgb(11 39 27 / 0.28);
+  --shadow-elev-3: 0 24px 60px -24px rgb(11 39 27 / 0.55);
+  /* radius philosophy: 6 controls · 10 cards · 14 overlays · pills for chips only */
+  --radius-control: 6px;
+  --radius-card: 10px;
+  --radius-overlay: 14px;
+}
+
+:root {
+  --ease-standard: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-pop: cubic-bezier(0.2, 0.7, 0.3, 1.2);
+  --dur-fast: 120ms;
+  --dur-base: 240ms;
+  --dur-slow: 420ms;
 }
 
 html {
@@ -38,10 +59,7 @@ body {
   color: var(--color-pine-deep);
 }
 
-/* ================= themes =================
-   The whole app is built on semantic tokens, so redefining the variables
-   on <html data-theme> re-skins everything — sidebar, masthead, charts,
-   phone preview, login gate. */
+/* ================= themes ================= */
 
 /* Barako — kapeng barako counter: espresso, copper, latte paper. */
 [data-theme="barako"] {
@@ -56,7 +74,7 @@ body {
   --color-mango: #cf7a2a;
   --color-mango-deep: #a45a12;
   --color-mango-soft: #f3e2c8;
-  --font-display: "Fraunces", "Instrument Sans", serif;
+  --font-display: "Fraunces Variable", "Fraunces", serif;
 }
 
 /* Jeepney — hand-painted livery: maroon body, chrome yellow signwriting. */
@@ -72,11 +90,78 @@ body {
   --color-mango: #f7c91f;
   --color-mango-deep: #d3a30b;
   --color-mango-soft: #f9ecc0;
-  --font-display: "Alfa Slab One", "Instrument Sans", sans-serif;
+  --font-display: "Alfa Slab One", "Bricolage Grotesque Variable", sans-serif;
+}
+
+/* Gabi — night shift: deep greens, lantern mango. Dark surfaces stay dark;
+   pine flips to a readable sage for text/strokes, with surface overrides. */
+[data-theme="gabi"] {
+  --color-ink: #e7efe8;
+  --color-ink-soft: #9cb2a3;
+  --color-paper: #0b1d15;
+  --color-card: #12281d;
+  --color-line: #21402f;
+  --color-pine: #7cc49c;
+  --color-pine-deep: #06120c;
+  --color-pine-soft: #1b3f2e;
+  --color-mango: #f2a91e;
+  --color-mango-deep: #e09a12;
+  --color-mango-soft: #33290f;
+  --color-leaf: #4fbf7f;
+  --color-leaf-soft: #14311f;
+  --color-cherry: #e0685f;
+  --color-cherry-soft: #331512;
+  --color-gcash: #7aa3e8;
+  --color-gcash-soft: #12233c;
+}
+[data-theme="gabi"] .bg-pine {
+  background-color: #17392a;
+}
+[data-theme="gabi"] .text-card {
+  color: #e9f1ea;
+}
+[data-theme="gabi"] body {
+  background-image: radial-gradient(rgba(124, 196, 156, 0.06) 1px, transparent 1px);
 }
 
 .tnum {
   font-variant-numeric: tabular-nums;
+}
+
+/* ---- keyboard access ---- */
+:focus-visible {
+  outline: 2px solid var(--color-mango);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.skip-link {
+  position: fixed;
+  top: -60px;
+  left: 12px;
+  z-index: 100;
+  border-radius: 8px;
+  background: var(--color-mango);
+  color: var(--color-pine-deep);
+  padding: 10px 16px;
+  font-weight: 800;
+  font-size: 13px;
+  transition: top var(--dur-fast) var(--ease-standard);
+}
+.skip-link:focus {
+  top: 12px;
+}
+
+/* ---- viewport + safe areas ---- */
+.app-h {
+  min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
+}
+.safe-b {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+}
+.safe-t {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 0px);
 }
 
 /* ---- store awning stripes ---- */
@@ -111,8 +196,8 @@ body {
   opacity: 0;
   transform: translateY(18px);
   transition:
-    opacity 0.7s cubic-bezier(0.2, 0.6, 0.2, 1),
-    transform 0.7s cubic-bezier(0.2, 0.6, 0.2, 1);
+    opacity 0.7s var(--ease-standard),
+    transform 0.7s var(--ease-standard);
 }
 .reveal.in {
   opacity: 1;
@@ -129,13 +214,13 @@ body {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: none; }
 }
-.rise { animation: rise 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.rise { animation: rise 0.4s var(--ease-standard) both; }
 
 @keyframes toast-in {
   from { opacity: 0; transform: translateY(14px) scale(0.97); }
   to { opacity: 1; transform: none; }
 }
-.toast-in { animation: toast-in 0.32s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.toast-in { animation: toast-in 0.32s var(--ease-standard) both; }
 
 @keyframes ticker-fade {
   from { opacity: 0; transform: translateY(8px); }
@@ -147,28 +232,20 @@ body {
   from { transform: scaleY(0); }
   to { transform: scaleY(1); }
 }
-.bar-grow { transform-origin: bottom; animation: bar-grow 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.bar-grow { transform-origin: bottom; animation: bar-grow 0.7s var(--ease-standard) both; }
 
 @keyframes width-grow {
   from { transform: scaleX(0); }
   to { transform: scaleX(1); }
 }
-.width-grow { transform-origin: left; animation: width-grow 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.width-grow { transform-origin: left; animation: width-grow 0.8s var(--ease-standard) both; }
 
 @keyframes pop {
   0% { transform: scale(0.6); opacity: 0; }
   70% { transform: scale(1.06); }
   100% { transform: scale(1); opacity: 1; }
 }
-.pop { animation: pop 0.35s cubic-bezier(0.2, 0.7, 0.3, 1.2) both; }
-
-@keyframes shake {
-  10%, 90% { transform: translateX(-1px); }
-  20%, 80% { transform: translateX(2px); }
-  30%, 50%, 70% { transform: translateX(-5px); }
-  40%, 60% { transform: translateX(5px); }
-}
-.shake { animation: shake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+.pop { animation: pop 0.35s var(--ease-pop) both; }
 
 @keyframes dash-flow {
   to { stroke-dashoffset: -22; }
@@ -176,6 +253,37 @@ body {
 .flow-dash {
   stroke-dasharray: 6 5;
   animation: dash-flow 1.6s linear infinite;
+}
+
+@keyframes shake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(4px); }
+  30%, 50%, 70% { transform: translateX(-7px); }
+  40%, 60% { transform: translateX(7px); }
+}
+.shake { animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+
+/* ---- skeleton shimmer (awning-striped, on-brand) ---- */
+@keyframes skel {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+.skel {
+  border-radius: 8px;
+  background: linear-gradient(
+    100deg,
+    var(--color-paper) 40%,
+    var(--color-line) 50%,
+    var(--color-paper) 60%
+  );
+  background-size: 200% 100%;
+  animation: skel 1.6s linear infinite;
+}
+
+/* ---- below-fold paint budget ---- */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 420px;
 }
 
 .btn-press:active { transform: scale(0.96); }
@@ -217,6 +325,7 @@ body {
   .width-grow,
   .pop,
   .shake,
+  .skel,
   .flow-dash {
     animation: none;
   }

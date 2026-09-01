@@ -68,12 +68,16 @@ if (window.__appBooted && rootEl.children.length > 0) {
   );
 }
 
-// NOTE: service-worker registration is intentionally disabled in preview
-// builds — a previously-registered SW can pin the preview to a stale cached
-// shell and mask fresh rebuilds (index.html also purges old SWs on load).
-// For production PWA offline support (spec §9), re-enable:
-//   if ("serviceWorker" in navigator && import.meta.env.PROD) {
-//     window.addEventListener("load", () =>
-//       navigator.serviceWorker.register("/sw.js").catch(() => undefined),
-//     );
-//   }
+// PWA offline support (spec §9): enabled only on production hosts. Preview
+// sandboxes are excluded — a registered SW there can pin the preview to a
+// stale cached shell and mask fresh rebuilds (index.html also purges old SWs).
+if (
+  "serviceWorker" in navigator &&
+  import.meta.env.PROD &&
+  !window.location.hostname.includes("preview.") &&
+  window.location.hostname !== "localhost"
+) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+  });
+}
