@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
-import { downloadCSV, fmtDay, fmtTime, overdueDays, peso0, type Customer } from "../lib/data";
+import { downloadCSV, fmtDay, fmtTime, overdueDays, peso0 } from "../lib/data";
 import { useStore } from "../lib/store";
 import { CountUp, Reveal, Seg } from "../components/ui";
-import { IconCheck, IconClock, IconPlus, IconSearch, IconSms, IconUsers, IconX } from "../components/Icons";
+import { IconCheck, IconClock, IconPlus, IconSearch, IconUsers, IconX } from "../components/Icons";
 
 export default function UtangView() {
-  const { db, t, recordPayment, addUtang, addCustomer, notify } = useStore();
+  const { db, t, recordPayment, addUtang, addCustomer } = useStore();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<"balance" | "overdue">("balance");
   const [selId, setSelId] = useState<string | null>(null);
@@ -39,9 +39,6 @@ export default function UtangView() {
       ["Customer", "Phone", "Balance", "Days overdue"],
       ...list.map((c) => [c.name, c.phone, c.balance, overdueDays(c)]),
     ]);
-
-  const sendSms = (c: Customer) =>
-    notify("ok", "SMS sent", `Paalala → ${c.phone} via Semaphore`);
 
   return (
     <div className="grid gap-5 lg:grid-cols-12">
@@ -170,17 +167,9 @@ export default function UtangView() {
                 <h2 className="font-display text-xl font-extrabold">{sel.name}</h2>
                 <p className="font-mono text-xs text-ink-soft">{sel.phone}</p>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => sendSms(sel)}
-                  className="btn-press inline-flex items-center gap-2 rounded-lg bg-pine px-3.5 py-2 text-xs font-extrabold uppercase tracking-wide text-mango transition hover:bg-pine-deep"
-                >
-                  <IconSms className="h-4 w-4" /> {t("sendReminder")}
-                </button>
-                <button onClick={() => setSelId(null)} className="btn-press rounded-lg border border-line p-2 text-ink-soft transition hover:bg-paper lg:hidden" aria-label="Close">
-                  <IconX className="h-4 w-4" />
-                </button>
-              </div>
+              <button onClick={() => setSelId(null)} className="btn-press rounded-lg border border-line p-2 text-ink-soft transition hover:bg-paper lg:hidden" aria-label="Close">
+                <IconX className="h-4 w-4" />
+              </button>
             </div>
 
             <div className="grid gap-4 p-5 md:grid-cols-2">
@@ -208,7 +197,7 @@ export default function UtangView() {
                     )}
                   </div>
                   <div className="mt-2 flex gap-1.5">
-                    <input value={payAmt} onChange={(e) => setPayAmt(e.target.value)} type="number" placeholder="₱ amount" className="field border-card/20 bg-card/10 px-2.5 py-1.5 text-xs text-card placeholder:text-card/50" />
+                    <input value={payAmt} onChange={(e) => setPayAmt(e.target.value)} type="number" inputMode="decimal" placeholder="₱ amount" aria-label="Payment amount in pesos" className="field border-card/20 bg-card/10 px-2.5 py-1.5 text-xs text-card placeholder:text-card/50" />
                     <button
                       onClick={() => {
                         const a = parseFloat(payAmt);
@@ -257,7 +246,7 @@ export default function UtangView() {
               <IconUsers className="mx-auto h-10 w-10 text-ink-soft/40" />
               <p className="mt-3 font-display text-lg font-bold">Pumili ng suki</p>
               <p className="mt-1 max-w-64 text-sm text-ink-soft">
-                Click a customer on the left to see their ledger, collect payments, or send a reminder.
+                Click a customer on the left to see their ledger and collect payments.
               </p>
             </div>
           </div>

@@ -1,5 +1,5 @@
-/* Stable boot shim — resolved by the dual-boot loader in index.html when the
-   dev entry (/src/main.tsx) cannot execute (no live transform on the host).
-   Tries same-directory assets first (dist root), then ../dist (project root).
-   Keep the hashes in sync with `npm run build` output. */
-import("./assets/index-BsnBlOD2.js").catch(() => import("../dist/assets/index-BsnBlOD2.js"));
+/* Stable boot shim for the production bundle. The preview fallback loader in
+   index.html imports this file, which resolves the real hashed entry module.
+   Two relative paths cover dist-root and project-root serving layouts.
+   Keep the hash in sync with `npm run build` output. */
+import("./assets/index-Fpq_nC3V.js").catch(() => import("../dist/assets/index-Fpq_nC3V.js"));

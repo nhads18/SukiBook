@@ -1,6 +1,29 @@
 import { memo, useRef, useState } from "react";
 import { fmtDay, peso0, type DayAgg } from "../lib/data";
 
+/* ------------------------------- Spark ------------------------------ */
+
+/** Inline 7-day trend — stroke takes currentColor so it sits in any theme. */
+export function Spark({ points, className = "h-6 w-20" }: { points: number[]; className?: string }) {
+  if (points.length < 2) return null;
+  const max = Math.max(...points, 1);
+  const min = Math.min(...points, 0);
+  const span = Math.max(max - min, 1);
+  const W = 80;
+  const H = 24;
+  const pts = points.map((v, i) => ({
+    x: (i / (points.length - 1)) * (W - 4) + 2,
+    y: H - 3 - ((v - min) / span) * (H - 6),
+  }));
+  const d = `M${pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" L")}`;
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className={className} aria-hidden="true" preserveAspectRatio="none">
+      <path d={d} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.85" />
+      <circle cx={pts[pts.length - 1].x} cy={pts[pts.length - 1].y} r="2.4" fill="currentColor" />
+    </svg>
+  );
+}
+
 /* ------------------------------- Bars ------------------------------ */
 
 export function Bars({
@@ -62,6 +85,25 @@ export function Bars({
   );
 }
 
+/* Catmull-Rom → cubic Bézier: smooth, monotone-ish curves through real points. */
+function smoothPath(pts: [number, number][]): string {
+  if (pts.length === 0) return "";
+  if (pts.length === 1) return `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+  let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[Math.min(pts.length - 1, i + 2)];
+    const c1x = p1[0] + (p2[0] - p0[0]) / 6;
+    const c1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const c2x = p2[0] - (p3[0] - p1[0]) / 6;
+    const c2y = p2[1] - (p3[1] - p1[1]) / 6;
+    d += ` C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+  }
+  return d;
+}
+
 /* ----------------------------- AreaChart --------------------------- */
 
 export function AreaChart({
@@ -81,8 +123,7 @@ export function AreaChart({
   const max = Math.max(...series.map((s) => s.revenue), ...(prev ?? []).map((s) => s.revenue), 1);
   const x = (i: number) => pad + (i / Math.max(series.length - 1, 1)) * (W - pad * 2);
   const y = (v: number) => H - 26 - (v / max) * (H - 52);
-  const line = (arr: DayAgg[]) =>
-    arr.map((s, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(s.revenue).toFixed(1)}`).join(" ");
+  const line = (arr: DayAgg[]) => smoothPath(arr.map((s, i) => [x(i), y(s.revenue)] as [number, number]));
   const area = `${line(series)} L${x(series.length - 1).toFixed(1)},${H - 24} L${x(0).toFixed(1)},${H - 24} Z`;
 
   const onMove = (e: React.MouseEvent) => {
@@ -107,12 +148,12 @@ export function AreaChart({
           </linearGradient>
         </defs>
         {[0.25, 0.5, 0.75].map((f) => (
-          <line key={f} x1={pad} x2={W - pad} y1={y(max * f)} y2={y(max * f)} stroke="#e0e2d2" strokeDasharray="3 5" />
+          <line key={f} x1={pad} x2={W - pad} y1={y(max * f)} y2={y(max * f)} stroke="var(--color-line)" strokeDasharray="3 5" />
         ))}
-        <line x1={pad} x2={W - pad} y1={H - 24} y2={H - 24} stroke="#cdd0be" />
-        {prev && <path d={line(prev)} fill="none" stroke="#c9a24b" strokeWidth="2" strokeDasharray="5 5" opacity="0.8" />}
+        <line x1={pad} x2={W - pad} y1={H - 24} y2={H - 24} stroke="var(--color-line)" />
+        {prev && <path d={line(prev)} fill="none" stroke="var(--color-mango-deep)" strokeWidth="2" strokeDasharray="5 5" opacity="0.8" />}
         <path d={area} fill="url(#areaFill)" />
-        <path d={line(series)} fill="none" stroke="var(--color-pine)" strokeWidth="2.4" strokeLinejoin="round" />
+        <path d={line(series)} pathLength={1} className="draw-in" fill="none" stroke="var(--color-pine)" strokeWidth="2.4" strokeLinejoin="round" />
         {hv && (
           <>
             <line x1={x(hov!)} x2={x(hov!)} y1={20} y2={H - 24} stroke="var(--color-mango)" strokeWidth="1.5" />
@@ -158,7 +199,7 @@ export function Donut({
     <div className="flex items-center gap-5">
       <div className="relative h-36 w-36 shrink-0">
         <svg viewBox="0 0 140 140" className="h-full w-full -rotate-90">
-          <circle cx="70" cy="70" r={R} fill="none" stroke="#eceee0" strokeWidth="17" />
+          <circle cx="70" cy="70" r={R} fill="none" stroke="var(--color-paper)" strokeWidth="17" />
           {segments.map((s, i) => {
             const frac = s.value / total;
             const off = acc;

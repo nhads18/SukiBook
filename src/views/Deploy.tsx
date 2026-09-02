@@ -17,14 +17,15 @@ const PHASES: Phase[] = [
   {
     id: "local",
     n: "01",
-    title: "Develop locally",
+    title: "Develop locally (build only)",
     time: "~30 min",
-    blurb: "Clone, install, and boot the dashboard on your machine.",
+    blurb: "Your machine builds; it never hosts. Deployment exists in exactly one place: Vercel + Supabase.",
     items: [
       "Node.js 18+ and Git installed",
       "npm install → npm run dev (dashboard on :5173)",
       "Demo mode works with zero configuration",
       "npm run build passes, typecheck clean",
+      "No local server, no self-hosting — by design",
     ],
     code: {
       label: "terminal",
@@ -113,7 +114,6 @@ const COSTS = [
   { item: "Vercel (web hosting)", min: 0, max: 500 },
   { item: "Supabase Free (auth + Postgres + storage)", min: 0, max: 0 },
   { item: "Supabase Pro (past ~500 MB / PITR)", min: 0, max: 1400 },
-  { item: "Semaphore SMS (Phase 2)", min: 0, max: 2000 },
   { item: "Domain & SSL", min: 100, max: 100 },
 ];
 
@@ -154,7 +154,7 @@ function ArchDiagram() {
         </marker>
       </defs>
       {[
-        { x: 20, y: 30, w: 150, h: 62, t1: "Android app", t2: "Phase 2 · same sync core", c: "var(--color-pine)" },
+        { x: 20, y: 30, w: 150, h: 62, t1: "Phone browser", t2: "installable PWA · offline", c: "var(--color-pine)" },
         { x: 20, y: 158, w: 150, h: 62, t1: "Web dashboard", t2: "Vercel · React + Vite", c: "var(--color-pine)" },
         { x: 300, y: 94, w: 170, h: 62, t1: "Supabase", t2: "auth · RLS · PostgREST", c: "var(--color-mango)" },
         { x: 590, y: 30, w: 150, h: 62, t1: "PostgreSQL", t2: "source of truth", c: "var(--color-pine)" },
@@ -162,18 +162,18 @@ function ArchDiagram() {
       ].map((n, i) => (
         <g key={i}>
           <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="10" fill={n.c} />
-          <text x={n.x + n.w / 2} y={n.y + 27} textAnchor="middle" fill={n.c === "var(--color-mango)" ? "var(--color-pine-deep)" : "var(--color-mango)"} fontSize="14" fontWeight="800" fontFamily="Bricolage Grotesque, sans-serif">
+          <text x={n.x + n.w / 2} y={n.y + 27} textAnchor="middle" fill={n.c === "var(--color-mango)" ? "var(--color-pine-deep)" : "var(--color-mango)"} fontSize="14" fontWeight="800" style={{ fontFamily: "var(--font-display)" }}>
             {n.t1}
           </text>
-          <text x={n.x + n.w / 2} y={n.y + 45} textAnchor="middle" fill={n.c === "var(--color-mango)" ? "var(--color-pine-deep)" : "var(--color-card)"} opacity="0.75" fontSize="10" fontFamily="Spline Sans Mono, monospace">
+          <text x={n.x + n.w / 2} y={n.y + 45} textAnchor="middle" fill={n.c === "var(--color-mango)" ? "var(--color-pine-deep)" : "var(--color-card)"} opacity="0.75" fontSize="10" style={{ fontFamily: "var(--font-mono)" }}>
             {n.t2}
           </text>
         </g>
       ))}
-      {[{ x: 300, y: 200, w: 170, h: 34, t: "Phase 2: Semaphore SMS · Sheets mirror" }].map((n, i) => (
+      {[{ x: 300, y: 200, w: 170, h: 34, t: "Later: Edge Functions · Sheets mirror" }].map((n, i) => (
         <g key={i}>
           <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="17" fill="none" stroke="var(--color-pine)" strokeWidth="1.5" strokeDasharray="4 4" />
-          <text x={n.x + n.w / 2} y={n.y + 21} textAnchor="middle" fill="var(--color-ink-soft)" fontSize="10" fontWeight="700" fontFamily="Instrument Sans, sans-serif">
+          <text x={n.x + n.w / 2} y={n.y + 21} textAnchor="middle" fill="var(--color-ink-soft)" fontSize="10" fontWeight="700" style={{ fontFamily: "var(--font-body)" }}>
             {n.t}
           </text>
         </g>
@@ -183,8 +183,8 @@ function ArchDiagram() {
       <path d="M470,110 C530,95 540,61 590,61" fill="none" stroke="var(--color-pine)" strokeWidth="2" markerEnd="url(#arr)" className="flow-dash" />
       <path d="M470,140 C530,155 540,189 590,189" fill="none" stroke="var(--color-mango-deep)" strokeWidth="2" strokeDasharray="5 5" markerEnd="url(#arr)" className="flow-dash" />
       <path d="M385,156 L385,200" fill="none" stroke="var(--color-mango-deep)" strokeWidth="1.5" strokeDasharray="4 4" />
-      <text x="498" y="84" fontSize="10" fontFamily="Spline Sans Mono, monospace" fill="var(--color-ink-soft)">RLS-secured</text>
-      <text x="498" y="176" fontSize="10" fontFamily="Spline Sans Mono, monospace" fill="var(--color-mango-deep)">debounced 1.5 s</text>
+      <text x="498" y="84" fontSize="10" style={{ fontFamily: "var(--font-mono)" }} fill="var(--color-ink-soft)">RLS-secured</text>
+      <text x="498" y="176" fontSize="10" style={{ fontFamily: "var(--font-mono)" }} fill="var(--color-mango-deep)">debounced 1.5 s</text>
     </svg>
   );
 }
@@ -218,7 +218,7 @@ export default function DeployView() {
     <div className="space-y-6">
       <Reveal>
         <div className="relative overflow-hidden rounded-xl bg-pine text-card shadow-md">
-          <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(600px 260px at 85% 0%, rgba(246,168,28,0.16), transparent 60%)" }} />
+          <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(600px 260px at 85% 0%, color-mix(in srgb, var(--color-mango) 16%, transparent), transparent 60%)" }} />
           <div className="relative flex flex-wrap items-end justify-between gap-4 px-6 py-6">
             <div>
               <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-mango/40 bg-mango/10 px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.18em] text-mango">

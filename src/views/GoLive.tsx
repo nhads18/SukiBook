@@ -96,7 +96,7 @@ export default function GoLiveView() {
       <Reveal>
         <div className="relative overflow-hidden rounded-2xl bg-pine text-card shadow-md">
           <div className="stripes-soft absolute inset-x-0 top-0 h-1.5" />
-          <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(640px 280px at 85% 0%, rgba(246,168,28,0.18), transparent 60%)" }} />
+          <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(640px 280px at 85% 0%, color-mix(in srgb, var(--color-mango) 18%, transparent), transparent 60%)" }} />
           <div className="relative flex flex-wrap items-end justify-between gap-5 px-6 py-6">
             <div>
               <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-mango/40 bg-mango/10 px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.18em] text-mango">

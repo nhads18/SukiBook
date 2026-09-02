@@ -31,7 +31,7 @@ export default function LoginGate({
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(800px 480px at 85% 10%, rgba(246,168,28,0.14), transparent 60%), radial-gradient(640px 480px at 8% 90%, rgba(47,143,91,0.16), transparent 60%)",
+            "radial-gradient(800px 480px at 85% 10%, color-mix(in srgb, var(--color-mango) 14%, transparent), transparent 60%), radial-gradient(640px 480px at 8% 90%, color-mix(in srgb, var(--color-leaf) 16%, transparent), transparent 60%)",
         }}
       />
       <div className="stripes stripes-anim absolute inset-x-0 top-0 h-2.5" />

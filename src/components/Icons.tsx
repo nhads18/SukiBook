@@ -255,6 +255,13 @@ export const IconBackspace = (p: P) => (
   </S>
 );
 
+export const IconBell = (p: P) => (
+  <S {...p}>
+    <path d="M12 4a5.5 5.5 0 0 0-5.5 5.5c0 4.2-1.3 5.6-2 6.3h15c-.7-.7-2-2.1-2-6.3A5.5 5.5 0 0 0 12 4z" />
+    <path d="M10 18.5a2 2 0 0 0 4 0" />
+  </S>
+);
+
 export const IconShield = (p: P) => (
   <S {...p}>
     <path d="M12 3.5 5 6.2v5.3c0 4.4 2.9 7.4 7 9 4.1-1.6 7-4.6 7-9V6.2z" />

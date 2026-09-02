@@ -81,7 +81,6 @@ Every push to `main` redeploys in ~1 minute; instant rollback from the dashboard
 
 When server-side secrets are needed, use **Supabase Edge Functions** (no server to run):
 
-- **Semaphore PH SMS** — function secret, called from the utang reminder button.
 - **Google Sheets mirror** — hourly function writes product/sales tabs.
 
 ## 8 · Monthly cost
@@ -90,16 +89,10 @@ When server-side secrets are needed, use **Supabase Edge Functions** (no server 
 | --- | --- |
 | Vercel (web) | Free – ₱500 |
 | Supabase (auth + Postgres + storage) | Free – ₱1,400 (Pro) |
-| Semaphore SMS (Phase 2) | ₱1,000 – 2,000 |
 | Domain & SSL | ₱100 |
-| **Phase 1 total** | **₱100 – ₱2,000** |
+| **Total** | **₱100 – ₱2,000** |
 
-## 9 · Mobile app stores
-
-**Deferred until after web launch.** When ready: React Native + Expo EAS wraps the
-same sync core into Play + App Store binaries. Web + installable PWA covers the field until then.
-
-## 10 · Commands
+## 9 · Commands
 
 ```bash
 npm run dev        # local development

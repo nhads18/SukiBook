@@ -13,6 +13,7 @@ export default function SalesView() {
   const [payment, setPayment] = useState<Payment>("cash");
   const [customerId, setCustomerId] = useState("");
   const [newSuki, setNewSuki] = useState({ name: "", phone: "", open: false });
+  const [stamp, setStamp] = useState<{ total: number; payment: Payment; ts: number } | null>(null);
 
   /* ledger filters */
   const [payFilter, setPayFilter] = useState<"all" | Payment>("all");
@@ -56,6 +57,8 @@ export default function SalesView() {
       customerId: payment === "utang" ? customerId : undefined,
     });
     notify("ok", "Sale recorded", peso(total2));
+    setStamp({ total: total2, payment, ts: Date.now() });
+    window.setTimeout(() => setStamp(null), 1150);
     setLines({});
     setPayment("cash");
     setCustomerId("");
@@ -64,7 +67,18 @@ export default function SalesView() {
   return (
     <div className="grid gap-5 lg:grid-cols-12">
       {/* ---------------- POS ---------------- */}
-      <div className="lg:col-span-7">
+      <div className="relative lg:col-span-7">
+        {stamp && (
+          <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center" aria-hidden="true">
+            <div className="stamp-in rounded-lg border-4 border-double border-leaf bg-card/95 px-7 py-3.5 text-center shadow-elev-3">
+              <p className="font-mono text-[9px] font-extrabold uppercase tracking-[0.28em] text-leaf">Recorded · Naitala</p>
+              <p className="tnum font-display text-3xl font-extrabold leading-tight text-pine">{peso0(stamp.total)}</p>
+              <p className="font-mono text-[9px] font-bold uppercase tracking-wider text-ink-soft">
+                {stamp.payment === "gcash" ? "GCash" : stamp.payment === "utang" ? "Utang" : "Cash"} · {fmtTime(stamp.ts)}
+              </p>
+            </div>
+          </div>
+        )}
         <div className="rounded-xl border border-line bg-card shadow-sm">
           <div className="border-b border-line p-4">
             <div className="relative">
@@ -121,7 +135,7 @@ export default function SalesView() {
                         <Stepper small value={q} min={0} onChange={(v) => setLines((prev) => {
                           const n = { ...prev };
                           if (v <= 0) delete n[id];
-                          else n[id] = v;
+                          else n[id] = Math.min(v, p.stock);
                           return n;
                         })} />
                         <span className="tnum w-16 text-right font-mono text-sm font-bold">{peso(p.price * q)}</span>

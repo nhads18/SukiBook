@@ -50,7 +50,7 @@ html {
 
 body {
   @apply bg-paper text-ink font-body antialiased;
-  background-image: radial-gradient(rgba(16, 53, 36, 0.055) 1px, transparent 1px);
+  background-image: radial-gradient(color-mix(in srgb, var(--color-pine) 6%, transparent) 1px, transparent 1px);
   background-size: 22px 22px;
 }
 
@@ -177,7 +177,11 @@ body {
   }
 }
 .stripes-soft {
-  background: repeating-linear-gradient(90deg, rgba(246, 168, 28, 0.9) 0 14px, rgba(16, 53, 36, 0.92) 14px 28px);
+  background: repeating-linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-mango) 90%, transparent) 0 14px,
+    color-mix(in srgb, var(--color-pine) 92%, transparent) 14px 28px
+  );
 }
 
 /* ---- film grain ---- */
@@ -255,6 +259,25 @@ body {
   animation: dash-flow 1.6s linear infinite;
 }
 
+/* receipt stamp — lands like rubber on paper */
+@keyframes stamp-in {
+  0% { transform: scale(1.9) rotate(-16deg); opacity: 0; }
+  55% { transform: scale(0.94) rotate(-7deg); opacity: 1; }
+  75% { transform: scale(1.04) rotate(-9deg); }
+  100% { transform: scale(1) rotate(-8deg); opacity: 1; }
+}
+.stamp-in { animation: stamp-in 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.1) both; }
+
+/* chart line draws itself in */
+@keyframes draw-line {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+.draw-in {
+  stroke-dasharray: 1;
+  animation: draw-line 1.1s cubic-bezier(0.3, 0.6, 0.2, 1) 0.15s both;
+}
+
 @keyframes shake {
   10%, 90% { transform: translateX(-2px); }
   20%, 80% { transform: translateX(4px); }
@@ -294,13 +317,13 @@ body {
 }
 .field:focus {
   border-color: var(--color-pine);
-  box-shadow: 0 0 0 3px rgba(16, 53, 36, 0.12);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-pine) 12%, transparent);
 }
 
 /* ---- scrollbars ---- */
 *::-webkit-scrollbar { width: 9px; height: 9px; }
 *::-webkit-scrollbar-thumb {
-  background: #c9cdbc;
+  background: var(--color-line);
   border-radius: 8px;
   border: 2px solid var(--color-paper);
 }
@@ -326,6 +349,8 @@ body {
   .pop,
   .shake,
   .skel,
+  .stamp-in,
+  .draw-in,
   .flow-dash {
     animation: none;
   }

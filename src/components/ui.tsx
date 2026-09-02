@@ -98,18 +98,47 @@ export function Modal({
   title: string;
   children: ReactNode;
 }) {
+  const panelRef = useRef<HTMLDivElement | null>(null);
+
+  /* Escape closes, Tab cycles within the dialog, focus returns on close. */
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const prev = document.activeElement as HTMLElement | null;
+    window.setTimeout(() => panelRef.current?.focus(), 0);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const el = panelRef.current;
+      if (!el) return;
+      const focusables = el.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      prev?.focus?.();
+    };
   }, [open, onClose]);
 
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-pine-deep/60 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="pop relative w-full max-w-md rounded-xl border border-line bg-card p-5 shadow-2xl">
+      <div ref={panelRef} tabIndex={-1} className="pop relative w-full max-w-md rounded-xl border border-line bg-card p-5 shadow-2xl outline-none">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="font-display text-lg font-extrabold">{title}</h3>
           <button onClick={onClose} className="btn-press rounded-md p-1.5 text-ink-soft transition hover:bg-paper hover:text-ink" aria-label="Close">

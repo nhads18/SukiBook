@@ -1,19 +1,20 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type ComponentType } from "react";
 import { StoreProvider, useStore, THEMES, type ThemeKey } from "./lib/store";
-import { lowStock, overdueDays } from "./lib/data";
+import { lowStock, overdueDays, peso0 } from "./lib/data";
 import type { StrKey, Lang } from "./lib/i18n";
 import { Seg, SyncPill, ToastHost } from "./components/ui";
 import {
+  IconAlert,
   IconBasket,
+  IconBell,
   IconBox,
   IconChart,
   IconCheck,
   IconDash,
   IconGear,
   IconLock,
-  IconMonitor,
   IconPalette,
-  IconPhone,
+  IconPeso,
   IconPower,
   IconReceipt,
   IconRocket,
@@ -22,7 +23,6 @@ import {
   LogoMark,
 } from "./components/Icons";
 import Dashboard from "./views/Dashboard";
-import MobileScene from "./Mobile";
 
 /* Route-level code splitting: every non-landing view ships as its own chunk. */
 const SalesView = lazy(() => import("./views/Sales"));
@@ -159,10 +159,109 @@ function ThemeMenu({ value, onChange }: { value: ThemeKey; onChange: (t: ThemeKe
   );
 }
 
+/** Notification center — low stock & overdue utang, each a one-tap shortcut. */
+function NoticeBell({ onView }: { onView: (v: View) => void }) {
+  const { db } = useStore();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    window.addEventListener("mousedown", onDown);
+    return () => window.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  const lows = lowStock(db);
+  const overdue = db.customers
+    .map((c) => ({ c, d: overdueDays(c) }))
+    .filter((x) => x.d > 7)
+    .sort((a, b) => b.d - a.d);
+  const count = lows.length + overdue.length;
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        title="Notifications"
+        aria-label={`Notifications${count > 0 ? `, ${count} pending` : ""}`}
+        aria-expanded={open}
+        className={`btn-press relative flex h-9 w-9 items-center justify-center rounded-lg border transition ${
+          open ? "border-pine bg-pine text-mango" : "border-line bg-card text-ink-soft hover:border-pine hover:text-pine"
+        }`}
+      >
+        <IconBell className="h-[18px] w-[18px]" />
+        {count > 0 && (
+          <span className="tnum absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-cherry px-1 font-mono text-[9px] font-extrabold text-cherry-soft">
+            {count}
+          </span>
+        )}
+      </button>
+      {open && (
+        <div className="pop absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-xl border border-line bg-card shadow-elev-3">
+          <div className="stripes-soft h-1" />
+          <div className="flex items-center justify-between px-4 py-3">
+            <p className="font-display text-sm font-extrabold">Needs attention</p>
+            <span className="tnum rounded bg-paper px-2 py-0.5 font-mono text-[10px] font-bold text-ink-soft">{count}</span>
+          </div>
+          <div className="max-h-72 overflow-y-auto">
+            {count === 0 && (
+              <p className="px-4 pb-4 text-xs text-ink-soft">
+                Wala — all clear. Stock is healthy and every utang is current.
+              </p>
+            )}
+            {lows.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => {
+                  onView("stock");
+                  setOpen(false);
+                }}
+                className="btn-press flex w-full items-center gap-3 border-t border-line px-4 py-2.5 text-left transition hover:bg-cherry-soft/40"
+              >
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-cherry-soft text-cherry">
+                  <IconAlert className="h-4 w-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-xs font-bold">{p.name}</span>
+                  <span className="block font-mono text-[10px] text-cherry">{p.stock === 0 ? "out of stock" : `${p.stock} left`}</span>
+                </span>
+                <span className="shrink-0 font-mono text-[10px] font-bold text-ink-soft">Restock →</span>
+              </button>
+            ))}
+            {overdue.map(({ c, d }) => (
+              <button
+                key={c.id}
+                onClick={() => {
+                  onView("utang");
+                  setOpen(false);
+                }}
+                className="btn-press flex w-full items-center gap-3 border-t border-line px-4 py-2.5 text-left transition hover:bg-mango-soft/40"
+              >
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-mango-soft text-mango-deep">
+                  <IconPeso className="h-4 w-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-xs font-bold">{c.name}</span>
+                  <span className="block font-mono text-[10px] text-mango-deep">
+                    {d}d overdue · {peso0(c.balance)}
+                  </span>
+                </span>
+                <span className="shrink-0 font-mono text-[10px] font-bold text-ink-soft">Collect →</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Shell() {
   const { db, t, settings, updateSettings, sync, toasts, lockNow, auth, syncError, clearSyncError } = useStore();
   const [view, setView] = useState<View>("dashboard");
-  const [device, setDevice] = useState<"web" | "mobile">("web");
 
   /* sliding active-nav indicator (measured, transform-only) */
   const navRef = useRef<HTMLElement | null>(null);
@@ -175,6 +274,11 @@ function Shell() {
   useEffect(() => {
     if ((view === "deploy" || view === "golive") && !isAdmin) setView("dashboard");
   }, [view, isAdmin]);
+
+  /* keep the browser tab honest — "Sales · SukiBook" beats nine identical tabs */
+  useEffect(() => {
+    document.title = `${t(`nav.${view}` as StrKey)} · SukiBook`;
+  }, [view, t]);
 
   /* measure the active nav item so the indicator glides between items */
   useLayoutEffect(() => {
@@ -196,10 +300,7 @@ function Shell() {
   useEffect(() => {
     const onNav = (e: Event) => {
       const detail = (e as CustomEvent).detail as View;
-      if (detail) {
-        setDevice("web");
-        setView(detail);
-      }
+      if (detail) setView(detail);
     };
     window.addEventListener("sukibook-nav", onNav);
     return () => window.removeEventListener("sukibook-nav", onNav);
@@ -210,11 +311,9 @@ function Shell() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "/") return;
       const el = document.activeElement as HTMLElement | null;
-      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable)) return;
-      e.preventDefault();
-      setDevice("web");
-      setView("products");
-      window.setTimeout(() => window.dispatchEvent(new Event("sukibook-focus-search")), 90);
+        if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable)) return;
+        e.preventDefault();
+        setView("products");      window.setTimeout(() => window.dispatchEvent(new Event("sukibook-focus-search")), 90);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -226,7 +325,6 @@ function Shell() {
     key === "stock" && lowCount > 0 ? lowCount : key === "utang" && overdueCount > 0 ? overdueCount : null;
   const badgeTint = (key: View) => (key === "stock" ? "bg-cherry text-cherry-soft" : "bg-mango text-pine-deep");
 
-  if (device === "mobile") return <MobileScene onSwitch={() => setDevice("web")} />;
 
   const Current = VIEWS[view];
 
@@ -315,6 +413,7 @@ function Shell() {
               <h1 className="truncate font-display text-lg font-extrabold leading-tight md:text-xl">{t(`nav.${view}` as StrKey)}</h1>
               <p className="hidden truncate text-xs text-ink-soft sm:block">{t(`sub.${view}` as StrKey)}</p>
             </div>
+            <NoticeBell onView={(v) => setView(v)} />
             <ThemeMenu value={settings.theme} onChange={(theme) => updateSettings({ theme })} />
             <Seg<Lang>
               value={settings.lang}
@@ -324,24 +423,6 @@ function Shell() {
                 { key: "tl", label: "TL" },
               ]}
             />
-            <div className="hidden rounded-lg border border-line bg-card p-0.5 sm:block" title="Device preview">
-              <div className="flex">
-                <button
-                  onClick={() => setDevice("web")}
-                  className={`btn-press rounded-md p-2 transition ${device === "web" ? "bg-pine text-mango" : "text-ink-soft hover:text-pine"}`}
-                  aria-label="Web dashboard"
-                >
-                  <IconMonitor className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => setDevice("mobile")}
-                  className="btn-press rounded-md p-2 text-ink-soft transition hover:text-pine"
-                  aria-label="Mobile app preview"
-                >
-                  <IconPhone className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
             <SyncPill status={sync.status} label={t("synced")} />
             <span
               className={`hidden items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider transition sm:flex ${ROLE_META[settings.role]?.tint ?? "bg-paper text-ink-soft"}`}
