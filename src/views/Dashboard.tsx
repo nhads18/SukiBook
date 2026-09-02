@@ -14,7 +14,8 @@ import {
 import { useStore } from "../lib/store";
 import { Bars, Donut, HBars } from "../components/charts";
 import { CountUp, Delta, Reveal } from "../components/ui";
-import { CategoryGlyph, IconAlert, IconBasket, IconChevR, IconClock, IconDown, IconPeso, IconUp } from "../components/Icons";
+import { CategoryGlyph, IconAlert, IconBasket, IconCheck, IconChevR, IconClock, IconDown, IconPeso, IconUp } from "../components/Icons";
+import { buildInsights } from "../lib/insights";
 
 const TIPS = [
   "Tip: low-stock items show red under Inventory — restock before Friday rush.",
@@ -147,52 +148,32 @@ export default function Dashboard({ go }: { go?: (v: string) => void }) {
   const deltaPct = stats.yest.total > 0 ? ((stats.today.total - stats.yest.total) / stats.yest.total) * 100 : 100;
   const tl = settings.lang === "tl";
 
-  /* honest "AI" — plain arithmetic on the ledger, surfaced as chips */
-  const insights = useMemo(() => {
-    const out: { text: string; view: string; tint: string; icon: ReactNode }[] = [];
-    const todaySales = db.sales.filter((s) => s.ts >= today0);
-    const tally = new Map<string, number>();
-    todaySales.forEach((s) => s.items.forEach((i) => tally.set(i.productId, (tally.get(i.productId) ?? 0) + i.qty)));
-    const top = [...tally.entries()].sort((a, b) => b[1] - a[1])[0];
-    if (top) {
-      const p = db.products.find((x) => x.id === top[0]);
-      if (p)
-        out.push({
-          view: "sales",
-          tint: "bg-mango-soft text-mango-deep",
-          icon: <IconBasket className="h-4 w-4" />,
-          text: tl ? `Pinakamabili ngayon: ${p.name} · ${top[1]} pcs` : `Best seller today: ${p.name} · ${top[1]} pcs`,
-        });
-    }
-    const hours = new Array(24).fill(0) as number[];
-    db.sales.filter((s) => now - s.ts < 7 * 86400000).forEach((s) => hours[new Date(s.ts).getHours()]++);
-    const best = hours.indexOf(Math.max(...hours));
-    if (Math.max(...hours) > 0)
-      out.push({
-        view: "reports",
-        tint: "bg-gcash-soft text-gcash",
-        icon: <IconClock className="h-4 w-4" />,
-        text: `${tl ? "Rush hour" : "Rush hour"}: ${h12(best)}–${h12(best + 1)} · ${tl ? "huling 7 araw" : "last 7 days"}`,
-      });
-    if (lows.length > 0)
-      out.push({
-        view: "stock",
-        tint: "bg-cherry-soft text-cherry",
-        icon: <IconAlert className="h-4 w-4" />,
-        text: tl
-          ? `${lows.length} paninda ang mababa — ${lows.slice(0, 2).map((p) => p.name).join(", ")}${lows.length > 2 ? "…" : ""}`
-          : `${lows.length} items running low — ${lows.slice(0, 2).map((p) => p.name).join(", ")}${lows.length > 2 ? "…" : ""}`,
-      });
-    const debtor = [...db.customers].sort((a, b) => b.balance - a.balance)[0];
-    if (debtor && debtor.balance > 0)
-      out.push({
-        view: "utang",
-        tint: "bg-pine-soft text-pine",
-        icon: <IconPeso className="h-4 w-4" />,
-        text: tl ? `${debtor.name} — may ${peso0(debtor.balance)} na utang` : `${debtor.name} — owes ${peso0(debtor.balance)}`,
-      });
-    return out.slice(0, 4);
-  }, [db, today0, now, tl, lows]);
+  /* honest "AI" — plain arithmetic on the ledger, surfaced as chips.
+     The full engine lives in lib/insights.ts: restock cues, overdue suki,
+     peak-hour reads, weekly champions, weekend share, GCash drift. */
+  const insights = useMemo(
+    () =>
+      buildInsights(db, settings.lang).map((ins) => ({
+        text: ins.title,
+        detail: ins.detail,
+        view: ins.view,
+        tint:
+          ins.kind === "warn"
+            ? "bg-cherry-soft text-cherry"
+            : ins.kind === "ok"
+              ? "bg-leaf-soft text-leaf"
+              : "bg-gcash-soft text-gcash",
+        icon:
+          ins.kind === "warn" ? (
+            <IconAlert className="h-4 w-4" />
+          ) : ins.kind === "ok" ? (
+            <IconCheck className="h-4 w-4" />
+          ) : (
+            <IconClock className="h-4 w-4" />
+          ),
+      })),
+    [db, settings.lang],
+  );
 
   const topSellers = useMemo(
     () =>

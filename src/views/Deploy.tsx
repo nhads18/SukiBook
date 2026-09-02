@@ -17,14 +17,15 @@ const PHASES: Phase[] = [
   {
     id: "local",
     n: "01",
-    title: "Develop locally",
+    title: "Develop locally (build only)",
     time: "~30 min",
-    blurb: "Clone, install, and boot the dashboard on your machine.",
+    blurb: "Your machine builds; it never hosts. Deployment exists in exactly one place: Vercel + Supabase.",
     items: [
       "Node.js 18+ and Git installed",
       "npm install → npm run dev (dashboard on :5173)",
       "Demo mode works with zero configuration",
       "npm run build passes, typecheck clean",
+      "No local server, no self-hosting — by design",
     ],
     code: {
       label: "terminal",
@@ -113,7 +114,6 @@ const COSTS = [
   { item: "Vercel (web hosting)", min: 0, max: 500 },
   { item: "Supabase Free (auth + Postgres + storage)", min: 0, max: 0 },
   { item: "Supabase Pro (past ~500 MB / PITR)", min: 0, max: 1400 },
-  { item: "Semaphore SMS (Phase 2)", min: 0, max: 2000 },
   { item: "Domain & SSL", min: 100, max: 100 },
 ];
 
@@ -154,7 +154,7 @@ function ArchDiagram() {
         </marker>
       </defs>
       {[
-        { x: 20, y: 30, w: 150, h: 62, t1: "Android app", t2: "Phase 2 · same sync core", c: "var(--color-pine)" },
+        { x: 20, y: 30, w: 150, h: 62, t1: "Phone browser", t2: "installable PWA · offline", c: "var(--color-pine)" },
         { x: 20, y: 158, w: 150, h: 62, t1: "Web dashboard", t2: "Vercel · React + Vite", c: "var(--color-pine)" },
         { x: 300, y: 94, w: 170, h: 62, t1: "Supabase", t2: "auth · RLS · PostgREST", c: "var(--color-mango)" },
         { x: 590, y: 30, w: 150, h: 62, t1: "PostgreSQL", t2: "source of truth", c: "var(--color-pine)" },
@@ -170,7 +170,7 @@ function ArchDiagram() {
           </text>
         </g>
       ))}
-      {[{ x: 300, y: 200, w: 170, h: 34, t: "Phase 2: Semaphore SMS · Sheets mirror" }].map((n, i) => (
+      {[{ x: 300, y: 200, w: 170, h: 34, t: "Later: Edge Functions · Sheets mirror" }].map((n, i) => (
         <g key={i}>
           <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="17" fill="none" stroke="var(--color-pine)" strokeWidth="1.5" strokeDasharray="4 4" />
           <text x={n.x + n.w / 2} y={n.y + 21} textAnchor="middle" fill="var(--color-ink-soft)" fontSize="10" fontWeight="700" fontFamily="Instrument Sans, sans-serif">
