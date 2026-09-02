@@ -19,7 +19,7 @@ import { buildInsights } from "../lib/insights";
 
 const TIPS = [
   "Tip: low-stock items show red under Inventory — restock before Friday rush.",
-  "Tip: utang over 7 days gets flagged overdue. One-tap SMS reminder in the Utang Book.",
+  "Tip: utang over 7 days gets flagged overdue — collect it from the Utang Book.",
   "Tip: press / anywhere to jump to product search.",
   "Tip: GCash sales are tracked separately — check the payment mix daily.",
   "Tip: everything you record offline syncs automatically when signal returns.",

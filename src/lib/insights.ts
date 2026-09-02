@@ -84,8 +84,8 @@ export function buildInsights(db: DB, lang: "en" | "tl"): Insight[] {
       kind: "warn",
       title: tl ? `${top.c.name} · ${top.d}d na lampas` : `${top.c.name} · ${top.d}d overdue`,
       detail: tl
-        ? `${peso0(top.c.balance)} ang utang — ipadala ang paalala`
-        : `${peso0(top.c.balance)} outstanding — send the reminder`,
+        ? `${peso0(top.c.balance)} ang utang — cobrahin na`
+        : `${peso0(top.c.balance)} outstanding — time to collect`,
       action: tl ? "Cobrahin" : "Collect",
       view: "utang",
     });

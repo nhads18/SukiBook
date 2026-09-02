@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
-import { downloadCSV, fmtDay, fmtTime, overdueDays, peso0, type Customer } from "../lib/data";
+import { downloadCSV, fmtDay, fmtTime, overdueDays, peso0 } from "../lib/data";
 import { useStore } from "../lib/store";
 import { CountUp, Reveal, Seg } from "../components/ui";
-import { IconCheck, IconClock, IconCopy, IconPlus, IconSearch, IconUsers, IconX } from "../components/Icons";
+import { IconCheck, IconClock, IconPlus, IconSearch, IconUsers, IconX } from "../components/Icons";
 
 export default function UtangView() {
-  const { db, t, settings, recordPayment, addUtang, addCustomer, notify } = useStore();
+  const { db, t, recordPayment, addUtang, addCustomer } = useStore();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<"balance" | "overdue">("balance");
   const [selId, setSelId] = useState<string | null>(null);
@@ -39,15 +39,6 @@ export default function UtangView() {
       ["Customer", "Phone", "Balance", "Days overdue"],
       ...list.map((c) => [c.name, c.phone, c.balance, overdueDays(c)]),
     ]);
-
-  /* Reminder text to clipboard — paste into any chat/SMS app (no gateway needed). */
-  const copyReminder = (c: Customer) => {
-    const msg = `Hi ${c.name}! Paalala lang po — may outstanding na ₱${c.balance.toFixed(2)} sa ${settings.storeName}. Maraming salamat! 🙏`;
-    navigator.clipboard
-      ?.writeText(msg)
-      .then(() => notify("ok", "Reminder copied", "Paste it into SMS / Messenger / Viber"))
-      .catch(() => notify("warn", "Copy failed", msg));
-  };
 
   return (
     <div className="grid gap-5 lg:grid-cols-12">
@@ -176,18 +167,9 @@ export default function UtangView() {
                 <h2 className="font-display text-xl font-extrabold">{sel.name}</h2>
                 <p className="font-mono text-xs text-ink-soft">{sel.phone}</p>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => copyReminder(sel)}
-                  title="Copies a ready-to-send reminder — paste it into SMS, Messenger or Viber"
-                  className="btn-press inline-flex items-center gap-2 rounded-lg bg-pine px-3.5 py-2 text-xs font-extrabold uppercase tracking-wide text-mango transition hover:bg-pine-deep"
-                >
-                  <IconCopy className="h-4 w-4" /> {t("copyReminder")}
-                </button>
-                <button onClick={() => setSelId(null)} className="btn-press rounded-lg border border-line p-2 text-ink-soft transition hover:bg-paper lg:hidden" aria-label="Close">
-                  <IconX className="h-4 w-4" />
-                </button>
-              </div>
+              <button onClick={() => setSelId(null)} className="btn-press rounded-lg border border-line p-2 text-ink-soft transition hover:bg-paper lg:hidden" aria-label="Close">
+                <IconX className="h-4 w-4" />
+              </button>
             </div>
 
             <div className="grid gap-4 p-5 md:grid-cols-2">
@@ -264,7 +246,7 @@ export default function UtangView() {
               <IconUsers className="mx-auto h-10 w-10 text-ink-soft/40" />
               <p className="mt-3 font-display text-lg font-bold">Pumili ng suki</p>
               <p className="mt-1 max-w-64 text-sm text-ink-soft">
-                Click a customer on the left to see their ledger, collect payments, or send a reminder.
+                Click a customer on the left to see their ledger and collect payments.
               </p>
             </div>
           </div>
