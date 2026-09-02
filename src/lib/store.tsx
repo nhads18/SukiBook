@@ -47,42 +47,10 @@ import {
 } from "./auth";
 
 export type Role = "owner" | "helper" | "accountant";
-export type ThemeKey = "awning" | "barako" | "jeepney" | "gabi";
-
-export const THEMES: { key: ThemeKey; name: string; tagline: string; swatches: string[]; font: string; meta: string }[] = [
-  {
-    key: "awning",
-    name: "Awning",
-    tagline: "The classic tindahan — pine green & mango under the tarpaulin",
-    swatches: ["#103524", "#f6a81c", "#f1f2ea"],
-    font: '"Bricolage Grotesque", sans-serif',
-    meta: "#103524",
-  },
-  {
-    key: "barako",
-    name: "Barako",
-    tagline: "Kapeng barako counter — espresso, copper & latte paper",
-    swatches: ["#241812", "#cf7a2a", "#efe6d8"],
-    font: '"Fraunces", serif',
-    meta: "#241812",
-  },
-  {
-    key: "jeepney",
-    name: "Jeepney",
-    tagline: "Hand-painted livery — maroon body, chrome yellow signwriting",
-    swatches: ["#4a101f", "#f7c91f", "#f7f2e7"],
-    font: '"Alfa Slab One", sans-serif',
-    meta: "#4a101f",
-  },
-  {
-    key: "gabi",
-    name: "Gabi",
-    tagline: "Night shift — deep greens under the lantern's mango glow",
-    swatches: ["#12281d", "#f2a91e", "#0b1d15"],
-    font: '"Bricolage Grotesque Variable", sans-serif',
-    meta: "#06120c",
-  },
-];
+/* Theme registry lives in src/theme — re-exported so existing
+   `import { THEMES } from "../lib/store"` call sites keep working. */
+export { THEMES, type ThemeKey } from "../theme/themes";
+import { THEMES, type ThemeKey } from "../theme/themes";
 
 export interface Settings {
   lang: Lang;
@@ -427,6 +395,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                   : c,
               )
             : prev.customers;
+        /* A fully stale cart (deleted / out-of-stock lines) must not
+           write an empty ₱0 entry into the ledger. */
+        if (sale.items.length === 0) return prev;
         return { ...prev, products, customers, sales: [sale, ...prev.sales], movements: [...movs, ...prev.movements] };
       });
       markSync();

@@ -162,10 +162,10 @@ function ArchDiagram() {
       ].map((n, i) => (
         <g key={i}>
           <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="10" fill={n.c} />
-          <text x={n.x + n.w / 2} y={n.y + 27} textAnchor="middle" fill={n.c === "var(--color-mango)" ? "var(--color-pine-deep)" : "var(--color-mango)"} fontSize="14" fontWeight="800" fontFamily="Bricolage Grotesque, sans-serif">
+          <text x={n.x + n.w / 2} y={n.y + 27} textAnchor="middle" fill={n.c === "var(--color-mango)" ? "var(--color-pine-deep)" : "var(--color-mango)"} fontSize="14" fontWeight="800" style={{ fontFamily: "var(--font-display)" }}>
             {n.t1}
           </text>
-          <text x={n.x + n.w / 2} y={n.y + 45} textAnchor="middle" fill={n.c === "var(--color-mango)" ? "var(--color-pine-deep)" : "var(--color-card)"} opacity="0.75" fontSize="10" fontFamily="Spline Sans Mono, monospace">
+          <text x={n.x + n.w / 2} y={n.y + 45} textAnchor="middle" fill={n.c === "var(--color-mango)" ? "var(--color-pine-deep)" : "var(--color-card)"} opacity="0.75" fontSize="10" style={{ fontFamily: "var(--font-mono)" }}>
             {n.t2}
           </text>
         </g>
@@ -173,7 +173,7 @@ function ArchDiagram() {
       {[{ x: 300, y: 200, w: 170, h: 34, t: "Later: Edge Functions · Sheets mirror" }].map((n, i) => (
         <g key={i}>
           <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="17" fill="none" stroke="var(--color-pine)" strokeWidth="1.5" strokeDasharray="4 4" />
-          <text x={n.x + n.w / 2} y={n.y + 21} textAnchor="middle" fill="var(--color-ink-soft)" fontSize="10" fontWeight="700" fontFamily="Instrument Sans, sans-serif">
+          <text x={n.x + n.w / 2} y={n.y + 21} textAnchor="middle" fill="var(--color-ink-soft)" fontSize="10" fontWeight="700" style={{ fontFamily: "var(--font-body)" }}>
             {n.t}
           </text>
         </g>
@@ -183,8 +183,8 @@ function ArchDiagram() {
       <path d="M470,110 C530,95 540,61 590,61" fill="none" stroke="var(--color-pine)" strokeWidth="2" markerEnd="url(#arr)" className="flow-dash" />
       <path d="M470,140 C530,155 540,189 590,189" fill="none" stroke="var(--color-mango-deep)" strokeWidth="2" strokeDasharray="5 5" markerEnd="url(#arr)" className="flow-dash" />
       <path d="M385,156 L385,200" fill="none" stroke="var(--color-mango-deep)" strokeWidth="1.5" strokeDasharray="4 4" />
-      <text x="498" y="84" fontSize="10" fontFamily="Spline Sans Mono, monospace" fill="var(--color-ink-soft)">RLS-secured</text>
-      <text x="498" y="176" fontSize="10" fontFamily="Spline Sans Mono, monospace" fill="var(--color-mango-deep)">debounced 1.5 s</text>
+      <text x="498" y="84" fontSize="10" style={{ fontFamily: "var(--font-mono)" }} fill="var(--color-ink-soft)">RLS-secured</text>
+      <text x="498" y="176" fontSize="10" style={{ fontFamily: "var(--font-mono)" }} fill="var(--color-mango-deep)">debounced 1.5 s</text>
     </svg>
   );
 }
